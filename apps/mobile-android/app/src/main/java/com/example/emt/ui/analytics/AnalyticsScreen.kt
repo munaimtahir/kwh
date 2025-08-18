@@ -106,4 +106,20 @@ fun SimpleBarChart(data: List<Pair<String, Double>>) {
             }
         }
     }
+                Text(formatChartDateLabel(it.first), fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+// Helper function to format date strings for chart labels
+fun formatChartDateLabel(dateString: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        if (date != null) outputFormat.format(date) else dateString
+    } catch (e: Exception) {
+        dateString
+    }
 }
