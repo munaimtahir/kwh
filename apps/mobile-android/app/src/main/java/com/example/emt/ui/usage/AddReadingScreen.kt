@@ -47,6 +47,11 @@ fun AddReadingScreen(viewModel: UsageViewModel) {
             Button(onClick = {
                 val kwhValue = kwh.toDoubleOrNull()
                 if (kwhValue == null || kwhValue <= 0) {
+                if (kwhValue == null) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Invalid input format. Please enter a numeric value for kWh.")
+                    }
+                } else if (kwhValue <= 0) {
                     scope.launch {
                         snackbarHostState.showSnackbar("Invalid kWh value. Please enter a positive number.")
                     }
