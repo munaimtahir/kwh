@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- TODO Remove the following rules to leave specific files un-backed up.
+         For more info, see https://developer.android.com/guide/topics/data/autobackup
+    -->
+    <exclude
+        domain="database"
+        path="." />
+    <exclude
+        domain="sharedpref"
+        path="." />
+    <exclude
+        domain="external"
+        path="." />
+</full-backup-content>
