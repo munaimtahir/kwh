@@ -2,18 +2,22 @@ name: Android Debug Build
 
 on:
   push:
-    branches: [ "**" ]
-  pull_request:           # <-- add this
+    branches: ["**"]
+  pull_request:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # If your Android project lives elsewhere, change this path.
     defaults:
       run:
         working-directory: apps/mobile-android
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -21,27 +25,49 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK
+      # Install only the command-line tools with the action.
+      # (We install packages manually next to avoid the list-parsing bug.)
+      - name: Install Android SDK (tools)
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
 
-      - name: Enable Gradle cache        # <-- optional but helpful
-        uses: gradle/actions/setup-gradle@v4
+      # Manually accept licenses and install required packages as separate args.
+      - name: Install SDK components
+        run: |
+          set -e
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --install \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --list | head -n 50
 
       - name: Write local.properties
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
+      - name: Ensure gradlew is executable
+        run: chmod +x ./gradlew || true
+
+      - name: Enable Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # Optional diagnostics to help if a path is wrong.
+      - name: Diagnostic — verify paths
+        run: |
+          pwd
+          ls -la
+          echo "---- parent dir ----"
+          ls -la ..
+
       - name: Build & Test
         run: |
           ./gradlew --version
-          ./gradlew clean :app:test :app:assembleDebug
+          ./gradlew --no-daemon clean :app:test :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
+          # If you changed working-directory, update this path too.
           path: apps/mobile-android/app/build/outputs/apk/debug/app-debug.apk
