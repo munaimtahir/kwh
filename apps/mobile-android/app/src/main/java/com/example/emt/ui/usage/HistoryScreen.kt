@@ -101,7 +101,36 @@ fun EditUsageDialog(usage: Usage, onDismiss: () -> Unit, onSave: (Usage) -> Unit
                 if (updatedKwh != null) {
                     onSave(usage.copy(kwh = updatedKwh))
                 }
-            }) {
+                    onValueChange = { 
+                        kwh = it
+                        error = null
+                    },
+                    label = { Text("kWh") },
+                    isError = error != null
+                )
+                if (error != null) {
+                    Text(
+                        text = error ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (updatedKwh == null) {
+                        error = "Please enter a valid number"
+                    } else if (updatedKwh <= 0) {
+                        error = "kWh must be positive"
+                    } else {
+                        onSave(usage.copy(kwh = updatedKwh))
+                    }
+                },
+                enabled = kwh.isNotBlank()
+            ) {
                 Text("Save")
             }
         },
