@@ -53,7 +53,17 @@ fun HistoryScreen(viewModel: UsageViewModel) {
                 viewModel.updateUsage(updatedUsage)
                 showEditDialog = false
             }
-        )
+    if (showEditDialog) {
+        selectedUsage?.let { usage ->
+            EditUsageDialog(
+                usage = usage,
+                onDismiss = { showEditDialog = false },
+                onSave = { updatedUsage ->
+                    viewModel.updateUsage(updatedUsage)
+                    showEditDialog = false
+                }
+            )
+        }
     }
 }
 
