@@ -3,6 +3,7 @@ name: Android Debug Build
 on:
   push:
     branches: [ "**" ]
+  pull_request:           # <-- add this
   workflow_dispatch:
 
 jobs:
@@ -28,9 +29,11 @@ jobs:
             platforms;android-34
             build-tools;34.0.0
 
+      - name: Enable Gradle cache        # <-- optional but helpful
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Write local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Build & Test
         run: |
