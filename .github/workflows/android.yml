@@ -26,14 +26,14 @@ jobs:
           java-version: "17"
 
       # Install only the command-line tools with the action.
-      # (We install packages manually next to avoid the list-parsing bug.)
+      # We'll install packages manually to avoid list-parsing issues.
       - name: Install Android SDK (tools)
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
 
-      # Manually accept licenses and install required packages as separate args.
+      # Manually accept licenses and install required packages.
       - name: Install SDK components
         run: |
           set -e
@@ -52,13 +52,20 @@ jobs:
       - name: Enable Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      # Optional diagnostics to help if a path is wrong.
+      # Optional diagnostics in case paths are wrong
       - name: Diagnostic — verify paths
         run: |
           pwd
           ls -la
           echo "---- parent dir ----"
           ls -la ..
+
+      # >>> Added safety step: ensure AndroidX is enabled on CI <<<
+      - name: Ensure AndroidX enabled (CI safety)
+        run: |
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          cat gradle.properties
 
       - name: Build & Test
         run: |
