@@ -60,11 +60,24 @@ class AnalyticsViewModel(private val repository: UsageRepository) : ViewModel() 
         val daysInRange = ((endDate.time - startDate.time) / (1000 * 60 * 60 * 24)) + 1
         val averageKwh = totalKwh / daysInRange
 
-        // For simplicity, chart data will just be the kwh values for now.
-        // A real implementation would group by day/week.
-        val chartData = filteredUsages.map {
-            Pair(it.date.toString(), it.kwh)
-        }
+        val chartData = filteredUsages
+            .groupBy {
+                // Normalize date to the start of the day
+                Calendar.getInstance().apply {
+                    time = it.date
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+            }
+            .mapValues { entry -> entry.value.sumOf { it.kwh } }
+            .entries
+            .sortedBy { it.key }
+            .map {
+                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it.key)
+                Pair(dateStr, it.value)
+            }
 
         return AnalyticsUiState(
             totalKwhThisMonth = totalKwh, // Note: This is total for the selected period

@@ -58,4 +58,22 @@ class UsageViewModelTest {
             verify(mockRepository).insert(eq(20.0), any(Date::class.java))
         }
     }
+
+    @Test
+    fun updateUsage_calls_repository() = runTest {
+        `when`(mockRepository.allUsages).thenReturn(MutableSharedFlow<List<Usage>>().asSharedFlow())
+        viewModel = UsageViewModel(mockRepository)
+        val usage = Usage(1, Date(), 10.0)
+        viewModel.updateUsage(usage)
+        verify(mockRepository).update(usage)
+    }
+
+    @Test
+    fun deleteUsage_calls_repository() = runTest {
+        `when`(mockRepository.allUsages).thenReturn(MutableSharedFlow<List<Usage>>().asSharedFlow())
+        viewModel = UsageViewModel(mockRepository)
+        val usage = Usage(1, Date(), 10.0)
+        viewModel.deleteUsage(usage)
+        verify(mockRepository).delete(usage)
+    }
 }

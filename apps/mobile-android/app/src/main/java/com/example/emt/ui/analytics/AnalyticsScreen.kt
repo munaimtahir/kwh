@@ -102,10 +102,6 @@ fun SimpleBarChart(data: List<Pair<String, Double>>) {
                         .width(20.dp)
                         .background(MaterialTheme.colorScheme.primary)
                 )
-                Text(it.first.take(5), fontSize = 10.sp) // Simple label
-            }
-        }
-    }
                 Text(formatChartDateLabel(it.first), fontSize = 10.sp)
             }
         }

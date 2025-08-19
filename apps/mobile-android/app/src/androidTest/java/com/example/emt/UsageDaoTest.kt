@@ -48,4 +48,25 @@ class UsageDaoTest {
         assertEquals(allUsages[0], usage2) // Should be sorted descending
         assertEquals(allUsages[1], usage1)
     }
+
+    @Test
+    @Throws(Exception::class)
+    fun updateAndGetUsage() = runBlocking {
+        val usage1 = Usage(id = 1, date = Date(1000), kwh = 10.0)
+        usageDao.insert(usage1)
+        val updatedUsage = usage1.copy(kwh = 15.0)
+        usageDao.update(updatedUsage)
+        val allUsages = usageDao.getAll().first()
+        assertEquals(allUsages[0].kwh, 15.0, 0.0)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun deleteAndGetUsage() = runBlocking {
+        val usage1 = Usage(id = 1, date = Date(1000), kwh = 10.0)
+        usageDao.insert(usage1)
+        usageDao.delete(usage1)
+        val allUsages = usageDao.getAll().first()
+        assertEquals(allUsages.isEmpty(), true)
+    }
 }
