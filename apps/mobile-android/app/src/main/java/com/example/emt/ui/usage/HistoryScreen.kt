@@ -4,150 +4,108 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.emt.data.Usage
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
+/**
+ * History screen that shows a list of readings and supports edit/delete.
+ * Provide the list and the callbacks from your ViewModel.
+ */
 @Composable
-fun HistoryScreen(viewModel: UsageViewModel) {
-    val usages by viewModel.allUsages.collectAsState()
-    var showEditDialog by remember { mutableStateOf(false) }
-    var selectedUsage by remember { mutableStateOf<Usage?>(null) }
+fun HistoryScreen(
+    items: List<Usage>,
+    onEdit: (Usage) -> Unit,
+    onDelete: (Usage) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    if (usages.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            Text("No usage history yet.")
-        }
-    } else {
-        LazyColumn(modifier = Modifier.padding(16.dp)) {
-            items(usages) { usage ->
-                UsageListItem(
-                    usage = usage,
-                    onEdit = {
-                        selectedUsage = it
-                        showEditDialog = true
-                    },
+            items(items, key = { it.id }) { usage ->
+                HistoryRow(
+                    item = usage,
+                    onEdit = { onEdit(usage) },
                     onDelete = {
-                        viewModel.deleteUsage(it)
+                        onDelete(usage)
+                        // Optional: simple feedback snackbar
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                "Deleted ${formatDate(usage.date)} (${formatKwh(usage.kWh)})"
+                            )
+                        }
                     }
                 )
             }
         }
     }
-
-    if (showEditDialog && selectedUsage != null) {
-        EditUsageDialog(
-            usage = selectedUsage!!,
-            onDismiss = { showEditDialog = false },
-            onSave = { updatedUsage ->
-                viewModel.updateUsage(updatedUsage)
-                showEditDialog = false
-            }
-    if (showEditDialog) {
-        selectedUsage?.let { usage ->
-            EditUsageDialog(
-                usage = usage,
-                onDismiss = { showEditDialog = false },
-                onSave = { updatedUsage ->
-                    viewModel.updateUsage(updatedUsage)
-                    showEditDialog = false
-                }
-            )
-        }
-    }
 }
 
 @Composable
-fun UsageListItem(usage: Usage, onEdit: (Usage) -> Unit, onDelete: (Usage) -> Unit) {
-    val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(usage.date)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "$formattedDate: ${usage.kwh} kWh",
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(onClick = { onEdit(usage) }) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit")
+private fun HistoryRow(
+    item: Usage,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = formatDate(item.date),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = formatKwh(item.kWh),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            IconButton(onClick = onEdit) {
+                Icon(imageVector = Icons.Outlined.Edit, contentDescription = "Edit")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete")
+            }
         }
-        IconButton(onClick = { onDelete(usage) }) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete")
-        }
+        Divider()
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditUsageDialog(usage: Usage, onDismiss: () -> Unit, onSave: (Usage) -> Unit) {
-    var kwh by remember { mutableStateOf(usage.kwh.toString()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Usage") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = kwh,
-                    onValueChange = { kwh = it },
-                    label = { Text("kWh") }
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val updatedKwh = kwh.toDoubleOrNull()
-                if (updatedKwh != null) {
-                    onSave(usage.copy(kwh = updatedKwh))
-                }
-                    onValueChange = { 
-                        kwh = it
-                        error = null
-                    },
-                    label = { Text("kWh") },
-                    isError = error != null
-                )
-                if (error != null) {
-                    Text(
-                        text = error ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (updatedKwh == null) {
-                        error = "Please enter a valid number"
-                    } else if (updatedKwh <= 0) {
-                        error = "kWh must be positive"
-                    } else {
-                        onSave(usage.copy(kwh = updatedKwh))
-                    }
-                },
-                enabled = kwh.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
+private fun formatDate(millis: Long): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return sdf.format(Date(millis))
 }
+
+private fun formatKwh(v: Double): String =
+    String.format(Locale.getDefault(), "%.2f kWh", v)
