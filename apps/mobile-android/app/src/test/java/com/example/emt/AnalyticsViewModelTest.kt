@@ -58,7 +58,15 @@ class AnalyticsViewModelTest {
         assertEquals(15.0, result.chartData.find { it.first.contains("2025-08-18") }?.second, 0.01) // Adjust date based on test execution
         assertEquals(8.0, result.chartData.find { it.first.contains("2025-08-17") }?.second, 0.01)
         assertEquals(12.0, result.chartData.find { it.first.contains("2025-08-16") }?.second, 0.01)
-    }
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+        val date1Str = dateFormat.format(date1)
+        val date2Str = dateFormat.format(date2)
+        val date3Str = dateFormat.format(date3)
+
+        assertEquals(3, result.chartData.size)
+        assertEquals(15.0, result.chartData.find { it.first.contains(date1Str) }?.second, 0.01)
+        assertEquals(8.0, result.chartData.find { it.first.contains(date2Str) }?.second, 0.01)
+        assertEquals(12.0, result.chartData.find { it.first.contains(date3Str) }?.second, 0.01)
 
     @Test
     fun calculateAnalytics_emptyList_returnsZeros() {
