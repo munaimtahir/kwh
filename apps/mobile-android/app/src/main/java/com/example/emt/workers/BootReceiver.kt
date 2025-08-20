@@ -15,9 +15,7 @@ class BootReceiver : BroadcastReceiver() {
             val settingsRepository = SettingsRepository(context)
             CoroutineScope(Dispatchers.IO).launch {
                 val enabled = settingsRepository.remindersEnabledFlow.first()
-                val time = settingsRepository.reminderTimeFlow.first()
-                if (enabled) {
-                    ReminderScheduler.scheduleReminder(context, time)
+
                 }
             }
         }

@@ -45,6 +45,8 @@ fun MainScreen(app: EMTApplication) {
     val usages by usageViewModel.allUsages.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.History) }
 
+    val items by usageViewModel.allUsages.collectAsState()
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -63,7 +65,7 @@ fun MainScreen(app: EMTApplication) {
         Surface(modifier = Modifier.padding(innerPadding)) {
             when (currentScreen) {
                 is Screen.History -> HistoryScreen(
-                    items = usages,
+
                     onEdit = { usageViewModel.updateUsage(it) },
                     onDelete = { usageViewModel.deleteUsage(it) }
                 )
