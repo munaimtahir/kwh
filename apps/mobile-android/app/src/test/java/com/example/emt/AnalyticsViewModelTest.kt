@@ -11,6 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
 
 class AnalyticsViewModelTest {
 
@@ -67,6 +68,7 @@ class AnalyticsViewModelTest {
         assertEquals(15.0, result.chartData.find { it.first.contains(date1Str) }?.second, 0.01)
         assertEquals(8.0, result.chartData.find { it.first.contains(date2Str) }?.second, 0.01)
         assertEquals(12.0, result.chartData.find { it.first.contains(date3Str) }?.second, 0.01)
+    }
 
     @Test
     fun calculateAnalytics_emptyList_returnsZeros() {
