@@ -27,11 +27,13 @@ jobs:
 
       # Install only the command-line tools with the action.
       # We'll install packages manually to avoid list-parsing issues.
-      - name: Install Android SDK (tools)
+       - name: Install Android SDK
         uses: android-actions/setup-android@v3
         with:
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
+          packages: |
+            platform-tools
+            platforms;android-33
+            build-tools;33.0.2
 
       # Manually accept licenses and install required packages.
       - name: Install SDK components
