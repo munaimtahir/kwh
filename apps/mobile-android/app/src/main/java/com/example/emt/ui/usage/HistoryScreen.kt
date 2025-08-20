@@ -108,4 +108,4 @@ private fun formatDate(millis: Long): String {
 }
 
 private fun formatKwh(v: Double): String =
-    String.format(Locale.getDefault(), "%.2f kWh", v)
+    String.format(Locale.getDefault(), "%.2f kwh", v)

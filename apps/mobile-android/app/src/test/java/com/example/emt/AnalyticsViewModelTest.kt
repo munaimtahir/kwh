@@ -55,10 +55,6 @@ class AnalyticsViewModelTest {
 
         val result = viewModel.calculateAnalytics(usages, "7 Days")
 
-        assertEquals(3, result.chartData.size)
-        assertEquals(15.0, result.chartData.find { it.first.contains("2025-08-18") }?.second, 0.01) // Adjust date based on test execution
-        assertEquals(8.0, result.chartData.find { it.first.contains("2025-08-17") }?.second, 0.01)
-        assertEquals(12.0, result.chartData.find { it.first.contains("2025-08-16") }?.second, 0.01)
         val dateFormat = SimpleDateFormat("yyyy-MM-dd")
         val date1Str = dateFormat.format(date1)
         val date2Str = dateFormat.format(date2)
