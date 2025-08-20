@@ -1,10 +1,12 @@
 name: Android Debug Build
 
 on:
-  push:
-    branches: ["**"]
-  pull_request:
+  pull_request: { types: [opened, synchronize, reopened] }
   workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -69,9 +71,7 @@ jobs:
           cat gradle.properties
 
       - name: Build & Test
-        run: |
-          ./gradlew --version
-          ./gradlew --no-daemon clean :app:test :app:assembleDebug
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
