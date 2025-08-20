@@ -42,6 +42,7 @@ fun MainScreen(app: EMTApplication) {
     val analyticsViewModel: AnalyticsViewModel = viewModel(
         factory = AnalyticsViewModelFactory(app.usageRepository)
     )
+    val usages by usageViewModel.allUsages.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.History) }
 
     val items by usageViewModel.allUsages.collectAsState()
@@ -64,7 +65,7 @@ fun MainScreen(app: EMTApplication) {
         Surface(modifier = Modifier.padding(innerPadding)) {
             when (currentScreen) {
                 is Screen.History -> HistoryScreen(
-                    items = items,
+
                     onEdit = { usageViewModel.updateUsage(it) },
                     onDelete = { usageViewModel.deleteUsage(it) }
                 )

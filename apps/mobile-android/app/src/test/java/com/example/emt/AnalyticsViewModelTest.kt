@@ -11,6 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
 
 class AnalyticsViewModelTest {
 
