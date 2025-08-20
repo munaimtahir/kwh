@@ -57,7 +57,7 @@ fun HistoryScreen(
                         // Optional: simple feedback snackbar
                         scope.launch {
                             snackbarHostState.showSnackbar(
-                                "Deleted ${formatDate(usage.date)} (${formatKwh(usage.kWh)})"
+                                "Deleted ${formatDate(usage.date.time)} (${formatKwh(usage.kwh)})"
                             )
                         }
                     }
@@ -83,11 +83,11 @@ private fun HistoryRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = formatDate(item.date),
+                    text = formatDate(item.date.time),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = formatKwh(item.kWh),
+                    text = formatKwh(item.kwh),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -108,4 +108,4 @@ private fun formatDate(millis: Long): String {
 }
 
 private fun formatKwh(v: Double): String =
-    String.format(Locale.getDefault(), "%.2f kWh", v)
+    String.format(Locale.getDefault(), "%.2f kwh", v)
