@@ -10,7 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # If your Android project lives elsewhere, change this path.
     defaults:
       run:
         working-directory: apps/mobile-android
@@ -27,7 +26,7 @@ jobs:
 
       # Install only the command-line tools with the action.
       # We'll install packages manually to avoid list-parsing issues.
-       - name: Install Android SDK
+      - name: Install Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: |
@@ -78,5 +77,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
-          # If you changed working-directory, update this path too.
           path: apps/mobile-android/app/build/outputs/apk/debug/app-debug.apk
