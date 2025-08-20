@@ -3,7 +3,7 @@ package com.example.emt.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -26,7 +26,7 @@ import com.example.emt.ui.usage.ViewModelFactory
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object History : Screen("history", "History", Icons.Default.List)
     object Add : Screen("add", "Add", Icons.Default.Add)
-    object Analytics : Screen("analytics", "Analytics", Icons.Default.Analytics)
+    object Analytics : Screen("analytics", "Analytics", Icons.Default.Insights)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
@@ -42,6 +42,7 @@ fun MainScreen(app: EMTApplication) {
     val analyticsViewModel: AnalyticsViewModel = viewModel(
         factory = AnalyticsViewModelFactory(app.usageRepository)
     )
+    val items by usageViewModel.allUsages.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.History) }
 
     Scaffold(
@@ -61,7 +62,11 @@ fun MainScreen(app: EMTApplication) {
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {
             when (currentScreen) {
-                is Screen.History -> HistoryScreen(usageViewModel)
+                is Screen.History -> HistoryScreen(
+                    items = items,
+                    onEdit = { usageViewModel.updateUsage(it) },
+                    onDelete = { usageViewModel.deleteUsage(it) }
+                )
                 is Screen.Add -> AddReadingScreen(usageViewModel)
                 is Screen.Analytics -> AnalyticsScreen(analyticsViewModel)
                 is Screen.Settings -> SettingsScreen(settingsViewModel)

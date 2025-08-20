@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,21 +47,30 @@ fun AddReadingScreen(viewModel: UsageViewModel) {
 
             Button(onClick = {
                 val kwhValue = kwh.toDoubleOrNull()
+                val selectedDate = datePickerState.selectedDateMillis?.let { Date(it) } ?: Date()
+                val usages = viewModel.allUsages.value
+
+                val isDuplicateDate = usages.any {
+                    val cal1 = Calendar.getInstance().apply { time = it.date }
+                    val cal2 = Calendar.getInstance().apply { time = selectedDate }
+                    cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                            cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+                }
+
                 if (kwhValue == null || kwhValue <= 0) {
-                if (kwhValue == null) {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Invalid input format. Please enter a numeric value for kWh.")
-                    }
-                } else if (kwhValue <= 0) {
                     scope.launch {
                         snackbarHostState.showSnackbar("Invalid kWh value. Please enter a positive number.")
                     }
                 } else {
-                    val selectedDate = datePickerState.selectedDateMillis?.let { Date(it) } ?: Date()
                     viewModel.addUsage(kwhValue, selectedDate)
                     kwh = "" // Clear input field
                     scope.launch {
-                        snackbarHostState.showSnackbar("Usage added successfully.")
+                        val message = if (isDuplicateDate) {
+                            "Usage added. Warning: Duplicate date."
+                        } else {
+                            "Usage added successfully."
+                        }
+                        snackbarHostState.showSnackbar(message)
                     }
                 }
             }) {

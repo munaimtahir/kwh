@@ -11,4 +11,12 @@ class UsageRepository(private val usageDao: UsageDao) {
         val newUsage = Usage(kwh = kwh, date = date)
         usageDao.insert(newUsage)
     }
+
+    suspend fun update(usage: Usage) {
+        usageDao.update(usage)
+    }
+
+    suspend fun delete(usage: Usage) {
+        usageDao.delete(usage)
+    }
 }

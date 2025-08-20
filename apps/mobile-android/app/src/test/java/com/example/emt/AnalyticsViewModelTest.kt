@@ -11,6 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
 
 class AnalyticsViewModelTest {
 
@@ -34,6 +35,35 @@ class AnalyticsViewModelTest {
         val result = viewModel.calculateAnalytics(usages, "1 Month")
 
         assertEquals(15.0, result.totalKwhThisMonth, 0.01)
+    }
+
+    @Test
+    fun calculateAnalytics_groupsChartDataByDay() {
+        val cal = Calendar.getInstance()
+        val date1 = cal.time
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val date2 = cal.time
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val date3 = cal.time
+
+        val usages = listOf(
+            Usage(id = 1, date = date1, kwh = 10.0),
+            Usage(id = 2, date = date1, kwh = 5.0), // Same day as 1
+            Usage(id = 3, date = date2, kwh = 8.0),
+            Usage(id = 4, date = date3, kwh = 12.0)
+        )
+
+        val result = viewModel.calculateAnalytics(usages, "7 Days")
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+        val date1Str = dateFormat.format(date1)
+        val date2Str = dateFormat.format(date2)
+        val date3Str = dateFormat.format(date3)
+
+        assertEquals(3, result.chartData.size)
+        assertEquals(15.0, result.chartData.find { it.first.contains(date1Str) }?.second, 0.01)
+        assertEquals(8.0, result.chartData.find { it.first.contains(date2Str) }?.second, 0.01)
+        assertEquals(12.0, result.chartData.find { it.first.contains(date3Str) }?.second, 0.01)
     }
 
     @Test

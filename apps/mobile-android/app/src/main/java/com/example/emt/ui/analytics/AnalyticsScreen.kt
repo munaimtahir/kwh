@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
@@ -102,10 +104,6 @@ fun SimpleBarChart(data: List<Pair<String, Double>>) {
                         .width(20.dp)
                         .background(MaterialTheme.colorScheme.primary)
                 )
-                Text(it.first.take(5), fontSize = 10.sp) // Simple label
-            }
-        }
-    }
                 Text(formatChartDateLabel(it.first), fontSize = 10.sp)
             }
         }

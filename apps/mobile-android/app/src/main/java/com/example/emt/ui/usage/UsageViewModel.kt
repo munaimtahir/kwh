@@ -24,4 +24,16 @@ class UsageViewModel(private val repository: UsageRepository) : ViewModel() {
             repository.insert(kwh, date)
         }
     }
+
+    fun updateUsage(usage: Usage) {
+        viewModelScope.launch {
+            repository.update(usage)
+        }
+    }
+
+    fun deleteUsage(usage: Usage) {
+        viewModelScope.launch {
+            repository.delete(usage)
+        }
+    }
 }
