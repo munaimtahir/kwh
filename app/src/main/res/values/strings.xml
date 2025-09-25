@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Kwh Logger</string>
+    <string name="meter">Meter</string>
+    <string name="meters">Meters</string>
+    <string name="add_meter">Add meter</string>
+    <string name="add_reading">Add reading</string>
+    <string name="set_reminder">Set reminder</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="reading_value">Reading value</string>
+    <string name="reading_notes">Notes</string>
+    <string name="reminder_frequency_days">Reminder frequency (days)</string>
+    <string name="reminder_time">Reminder time</string>
+    <string name="last_recorded">Last recorded</string>
+    <string name="no_readings_yet">No readings yet</string>
+    <string name="next_reminder">Next reminder</string>
+    <string name="reminder_notification_title">Time to log your meter reading</string>
+</resources>
