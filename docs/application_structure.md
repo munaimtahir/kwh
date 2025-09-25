@@ -1,0 +1,47 @@
+# Kwh Logger – Application Structure & Development Status
+
+## Overview
+Kwh Logger is an Android application that helps users capture electricity meter readings while configuring periodic reminders. It is built with Jetpack Compose for UI, Room for persistence, and WorkManager for background scheduling.【F:README.md†L1-L21】【F:app/src/main/AndroidManifest.xml†L1-L24】
+
+## Source Layout
+- **`app/src/main/java/com/example/kwh/data` – Persistence layer.** Defines Room entities for meters and readings, relation wrappers, the DAO contract for queries/mutations, and a singleton database accessor.【F:app/src/main/java/com/example/kwh/data/MeterEntity.kt†L1-L15】【F:app/src/main/java/com/example/kwh/data/MeterReadingEntity.kt†L1-L26】【F:app/src/main/java/com/example/kwh/data/MeterWithReadings.kt†L1-L12】【F:app/src/main/java/com/example/kwh/data/MeterWithLatestReading.kt†L1-L7】【F:app/src/main/java/com/example/kwh/data/MeterDao.kt†L1-L33】【F:app/src/main/java/com/example/kwh/data/MeterDatabase.kt†L1-L29】
+- **`app/src/main/java/com/example/kwh/repository` – Domain facade.** `MeterRepository` exposes streams with latest readings, delegates inserts/updates, and returns updated meter configs for reminder scheduling.【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L1-L63】
+- **`app/src/main/java/com/example/kwh/reminders` – Reminder infrastructure.** Hosts the WorkManager worker that posts notifications and reschedules itself, plus helper APIs to compute timing and enqueue/cancel work.【F:app/src/main/java/com/example/kwh/reminders/MeterReminderWorker.kt†L1-L115】【F:app/src/main/java/com/example/kwh/reminders/ReminderScheduler.kt†L1-L35】
+- **`app/src/main/java/com/example/kwh/ui` – Presentation layer.** Contains the Compose theme, reusable inputs, the home screen surface, and the `HomeViewModel` that binds repository flows to UI state.【F:app/src/main/java/com/example/kwh/ui/app/KwhTheme.kt†L1-L32】【F:app/src/main/java/com/example/kwh/ui/components/Inputs.kt†L1-L63】【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L1-L207】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L1-L104】
+- **Entry point & resources.** `MainActivity` wires dependencies, handles notification permissions, and renders the home screen. String resources define UI copy for meters, readings, and reminders.【F:app/src/main/java/com/example/kwh/MainActivity.kt†L1-L101】【F:app/src/main/res/values/strings.xml†L1-L18】
+
+## Key Workflows
+### Application start & dependency wiring
+`MainActivity` instantiates the Room database, repository, and reminder scheduler, then sets the Compose content. It observes the `HomeViewModel` state and funnels UI events to the view model. When reminder toggles require notification permissions on Android 13+, the activity defers the update until the permission result arrives, reverting the toggle if denied.【F:app/src/main/java/com/example/kwh/MainActivity.kt†L15-L101】
+
+### Meter creation
+1. User taps the floating action button, triggering `showAddMeterDialog(true)` in the view model via `HomeScreen` callbacks.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L40-L102】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L28-L39】
+2. Dialog collects the meter name and reminder defaults, then calls `HomeViewModel.addMeter` which delegates to `MeterRepository.addMeter`. The repository inserts a `MeterEntity` with reminders disabled by default.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L208-L260】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L41-L52】【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L21-L35】
+3. DAO insertion updates the meters flow, which the view model maps to UI items, refreshing the list.【F:app/src/main/java/com/example/kwh/data/MeterDao.kt†L14-L24】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L19-L66】
+
+### Reading logging
+1. `MeterCard` exposes an "Add reading" action that opens the reading dialog for the selected meter.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L103-L167】
+2. The dialog captures the numeric reading and optional notes, invoking `HomeViewModel.addReading` upon confirmation.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L262-L304】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L54-L64】
+3. The repository persists a `MeterReadingEntity` with the current timestamp; the latest reading propagates back to the UI via the flow mapping to `MeterWithLatestReading`.【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L37-L49】
+
+### Reminder configuration & scheduling
+1. Each meter card hosts reminder fields (toggle, frequency, time) bound to local state. Saving or toggling submits sanitized values to the `onReminderChanged` callback.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L169-L207】
+2. `HomeViewModel.updateReminder` writes the new configuration through `MeterRepository.updateReminderConfig`. When reminders are enabled, it invokes `ReminderScheduler.enableReminder`; otherwise it cancels via `disableReminder`.【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L66-L99】
+3. `ReminderScheduler` computes the next execution time and enqueues a unique WorkManager job. When the worker executes, it posts a notification and reschedules the next occurrence, ensuring recurring reminders.【F:app/src/main/java/com/example/kwh/reminders/ReminderScheduler.kt†L1-L35】【F:app/src/main/java/com/example/kwh/reminders/MeterReminderWorker.kt†L21-L115】
+4. On Android 13+, `MainActivity.handleReminderChange` requests the POST_NOTIFICATIONS permission before enabling WorkManager scheduling, reverting the toggle if the user denies the request.【F:app/src/main/java/com/example/kwh/MainActivity.kt†L43-L101】
+
+## Feature Status Snapshot
+| Feature | Description | Current Status |
+| --- | --- | --- |
+| Meter list & latest reading display | Streams all meters with their most recent reading and optional next reminder timestamp. | **Complete** – View model maps Room flows to UI models consumed by `HomeScreen`.【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L15-L66】【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L40-L167】 |
+| Meter creation | Compose dialog collects inputs and persists new meters with default reminder config. | **Complete** – Dialog hooks to repository insert via view model; flow refresh updates UI automatically.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L208-L260】【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L21-L35】 |
+| Reading capture | Dialog records numeric reading plus notes and timestamps automatically. | **Complete** – Repository writes to Room; latest reading displayed on cards.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L262-L304】【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L37-L49】 |
+| Reminder configuration | Toggle, frequency, and time fields per meter with WorkManager scheduling. | **Complete** – UI sanitizes inputs, view model persists config, scheduler enqueues/cancels jobs.【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L169-L207】【F:app/src/main/java/com/example/kwh/ui/home/HomeViewModel.kt†L66-L99】【F:app/src/main/java/com/example/kwh/reminders/ReminderScheduler.kt†L1-L35】 |
+| Notification delivery | Background worker posts reminder notification and re-queues next run. | **Complete** – Worker builds notification channel, shows notification, and reschedules.【F:app/src/main/java/com/example/kwh/reminders/MeterReminderWorker.kt†L21-L115】 |
+| Notification permission handling | Ensures reminders only activate when `POST_NOTIFICATIONS` is granted. | **Complete** – Activity defers updates until permission result, reverting if denied.【F:app/src/main/java/com/example/kwh/MainActivity.kt†L43-L101】 |
+| Meter deletion | DAO includes deletion API but no UI affordance yet. | **Not integrated** – `MeterDao.deleteMeter` exists, yet no repository/view model/UI path invokes it.【F:app/src/main/java/com/example/kwh/data/MeterDao.kt†L25-L33】【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L1-L63】【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L40-L207】 |
+| Reading history view | DAO streams all readings for a meter, but UI shows only latest value. | **Planned (data ready)** – Flow available via repository, yet no screen consumes it.【F:app/src/main/java/com/example/kwh/data/MeterDao.kt†L18-L24】【F:app/src/main/java/com/example/kwh/repository/MeterRepository.kt†L17-L20】【F:app/src/main/java/com/example/kwh/ui/home/HomeScreen.kt†L40-L207】 |
+| Theming & design system | Light/dark color schemes and reusable input components. | **Complete** – `KwhTheme` provides palettes and shared components wrap Compose controls.【F:app/src/main/java/com/example/kwh/ui/app/KwhTheme.kt†L1-L32】【F:app/src/main/java/com/example/kwh/ui/components/Inputs.kt†L1-L63】 |
+
+## Resource Summary
+Key user-facing strings (meter labels, reminder copy, notifications) live in `values/strings.xml`, while the manifest registers `MainActivity` and declares the notifications permission, keeping reminder behavior consistent across configurations.【F:app/src/main/res/values/strings.xml†L1-L18】【F:app/src/main/AndroidManifest.xml†L1-L24】
