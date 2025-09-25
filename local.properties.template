@@ -1,9 +1,0 @@
-# This file contains machine-specific properties for the Android SDK location.
-# Copy this file to local.properties and update the paths below.
-# Do not commit local.properties to version control.
-
-# Location of the Android SDK (update this path to your Android SDK location)
-sdk.dir=/path/to/your/android/sdk
-
-# Location of the Android NDK (optional, only if you use native code)
-# ndk.dir=/path/to/your/android/ndk
