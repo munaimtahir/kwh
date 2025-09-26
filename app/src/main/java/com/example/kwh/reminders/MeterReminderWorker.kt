@@ -75,6 +75,14 @@ class MeterReminderWorker(
         private const val KEY_FREQUENCY_DAYS = "key_frequency_days"
         private const val KEY_HOUR = "key_hour"
         private const val KEY_MINUTE = "key_minute"
+        private const val KEY_SNOOZE_MINUTES = "key_snooze_minutes"
+        
+        const val EXTRA_METER_ID = "extra_meter_id"
+        const val EXTRA_METER_NAME = "extra_meter_name"
+        const val EXTRA_FREQUENCY_DAYS = "extra_frequency"
+        const val EXTRA_HOUR = "extra_hour"
+        const val EXTRA_MINUTE = "extra_minute"
+        const val EXTRA_SNOOZE_MINUTES = "extra_snooze_minutes"
 
         fun scheduleReminder(
             context: Context,
@@ -82,7 +90,8 @@ class MeterReminderWorker(
             meterName: String,
             frequencyDays: Int,
             hour: Int,
-            minute: Int
+            minute: Int,
+            snoozeMinutes: Int = 60
         ) {
             val delay = ReminderScheduler.nextReminderDelay(frequencyDays, hour, minute)
             val data = Data.Builder()
@@ -91,6 +100,7 @@ class MeterReminderWorker(
                 .putInt(KEY_FREQUENCY_DAYS, frequencyDays)
                 .putInt(KEY_HOUR, hour)
                 .putInt(KEY_MINUTE, minute)
+                .putInt(KEY_SNOOZE_MINUTES, snoozeMinutes)
                 .build()
 
             val request = OneTimeWorkRequestBuilder<MeterReminderWorker>()
