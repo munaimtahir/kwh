@@ -71,6 +71,7 @@ class HomeViewModel @Inject constructor(
 
     fun addReading(meterId: Long, value: Double, notes: String?) {
         if (value.isNaN() || value <= 0.0) {
+            // TODO: Replace with string resource, e.g., emitError(getString(R.string.error_positive_reading))
             emitError("Enter a positive reading value")
             return
         }
