@@ -7,7 +7,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -16,6 +23,7 @@ import com.example.kwh.data.MeterDatabase
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.ui.app.KwhTheme
+import com.example.kwh.ui.home.HomeEvent
 import com.example.kwh.ui.home.HomeScreen
 import com.example.kwh.ui.home.HomeViewModel
 
@@ -28,7 +36,7 @@ class MainActivity : ComponentActivity() {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
-                    return HomeViewModel(repository, scheduler) as T
+                    return HomeViewModel(repository, scheduler, applicationContext) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }
@@ -69,30 +77,49 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             KwhTheme {
+                val snackbarHostState = remember { SnackbarHostState() }
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-                HomeScreen(
-                    uiState = uiState,
-                    onAddMeterClick = { viewModel.showAddMeterDialog(true) },
-                    onAddMeter = { name, frequency, hour, minute ->
-                        viewModel.addMeter(name, frequency, hour, minute)
-                    },
-                    onDismissAddMeter = { viewModel.showAddMeterDialog(false) },
-                    onAddReadingClick = { meterId -> viewModel.showAddReadingDialog(meterId, true) },
-                    onAddReading = { meterId, value, notes ->
-                        viewModel.addReading(meterId, value, notes)
-                    },
-                    onDismissReading = { viewModel.showAddReadingDialog(null, false) },
-                    onReminderChanged = { meterId, enabled, frequency, hour, minute ->
-                        handleReminderChange(
-                            meterId = meterId,
-                            enabled = enabled,
-                            frequency = frequency,
-                            hour = hour,
-                            minute = minute
-                        )
+                LaunchedEffect(viewModel) {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is HomeEvent.ShowMessage -> {
+                                snackbarHostState.showSnackbar(event.message)
+                            }
+                            is HomeEvent.Error -> {
+                                snackbarHostState.showSnackbar(event.message)
+                            }
+                        }
                     }
-                )
+                }
+
+                Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
+                ) { paddingValues ->
+                    HomeScreen(
+                        uiState = uiState,
+                        onAddMeterClick = { viewModel.showAddMeterDialog(true) },
+                        onAddMeter = { name, frequency, hour, minute ->
+                            viewModel.addMeter(name, frequency, hour, minute)
+                        },
+                        onDismissAddMeter = { viewModel.showAddMeterDialog(false) },
+                        onAddReadingClick = { meterId -> viewModel.showAddReadingDialog(meterId, true) },
+                        onAddReading = { meterId, value, notes ->
+                            viewModel.addReading(meterId, value, notes)
+                        },
+                        onDismissReading = { viewModel.showAddReadingDialog(null, false) },
+                        onReminderChanged = { meterId, enabled, frequency, hour, minute ->
+                            handleReminderChange(
+                                meterId = meterId,
+                                enabled = enabled,
+                                frequency = frequency,
+                                hour = hour,
+                                minute = minute
+                            )
+                        },
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
             }
         }
     }

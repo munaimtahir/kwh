@@ -1,24 +1,32 @@
 package com.example.kwh.ui.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kwh.R
 import com.example.kwh.data.MeterWithLatestReading
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import java.time.Instant
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val repository: MeterRepository,
-    private val reminderScheduler: ReminderScheduler
+    private val reminderScheduler: ReminderScheduler,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<HomeEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -42,19 +50,43 @@ class HomeViewModel(
     }
 
     fun addMeter(name: String, reminderFrequencyDays: Int, hour: Int, minute: Int) {
+        val sanitizedName = name.trim()
+        if (sanitizedName.isBlank()) {
+            emitError(context.getString(R.string.error_meter_name_empty))
+            return
+        }
+        val frequency = reminderFrequencyDays.coerceAtLeast(1)
+        val sanitizedHour = hour.coerceIn(0, 23)
+        val sanitizedMinute = minute.coerceIn(0, 59)
         viewModelScope.launch {
-            repository.addMeter(name, reminderFrequencyDays, hour, minute)
+            runCatching {
+                repository.addMeter(sanitizedName, frequency, sanitizedHour, sanitizedMinute)
+            }.onSuccess {
+                _events.send(HomeEvent.ShowMessage(context.getString(R.string.message_meter_added)))
+            }.onFailure {
+                emitError(context.getString(R.string.error_failed_add_meter))
+            }
         }
     }
 
     fun addReading(meterId: Long, value: Double, notes: String?) {
+        if (value.isNaN() || value <= 0.0) {
+            emitError(context.getString(R.string.error_positive_reading))
+            return
+        }
         viewModelScope.launch {
-            repository.addReading(
-                meterId = meterId,
-                value = value,
-                notes = notes,
-                recordedAt = System.currentTimeMillis()
-            )
+            runCatching {
+                repository.addReading(
+                    meterId = meterId,
+                    value = value,
+                    notes = notes,
+                    recordedAt = System.currentTimeMillis()
+                )
+            }.onSuccess {
+                _events.send(HomeEvent.ShowMessage(context.getString(R.string.message_reading_saved)))
+            }.onFailure {
+                emitError(context.getString(R.string.error_failed_save_reading))
+            }
         }
     }
 
@@ -65,20 +97,28 @@ class HomeViewModel(
         hour: Int,
         minute: Int
     ) {
+        val sanitizedFrequency = frequencyDays.coerceAtLeast(1)
+        val sanitizedHour = hour.coerceIn(0, 23)
+        val sanitizedMinute = minute.coerceIn(0, 59)
         viewModelScope.launch {
-            val updated = repository.updateReminderConfig(
-                meterId = meterId,
-                enabled = enabled,
-                frequencyDays = frequencyDays,
-                hour = hour,
-                minute = minute
-            )
-            if (updated != null) {
-                if (enabled) {
-                    reminderScheduler.enableReminder(updated)
-                } else {
-                    reminderScheduler.disableReminder(meterId)
+            runCatching {
+                repository.updateReminderConfig(
+                    meterId = meterId,
+                    enabled = enabled,
+                    frequencyDays = sanitizedFrequency,
+                    hour = sanitizedHour,
+                    minute = sanitizedMinute
+                )
+            }.onSuccess { updated ->
+                if (updated != null) {
+                    if (enabled) {
+                        reminderScheduler.enableReminder(updated)
+                    } else {
+                        reminderScheduler.disableReminder(meterId)
+                    }
                 }
+            }.onFailure {
+                emitError(context.getString(R.string.error_failed_update_reminder))
             }
         }
     }
@@ -107,6 +147,12 @@ class HomeViewModel(
             }
         )
     }
+
+    private fun emitError(message: String) {
+        viewModelScope.launch {
+            _events.send(HomeEvent.Error(message))
+        }
+    }
 }
 
 data class HomeUiState(
@@ -132,3 +178,8 @@ data class MeterReading(
     val recordedAt: Instant,
     val notes: String?
 )
+
+sealed interface HomeEvent {
+    data class ShowMessage(val message: String) : HomeEvent
+    data class Error(val message: String) : HomeEvent
+}

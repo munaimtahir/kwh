@@ -15,4 +15,11 @@
     <string name="no_readings_yet">No readings yet</string>
     <string name="next_reminder">Next reminder</string>
     <string name="reminder_notification_title">Time to log your meter reading</string>
+    <string name="error_meter_name_empty">Meter name cannot be empty</string>
+    <string name="error_positive_reading">Enter a positive reading value</string>
+    <string name="error_failed_add_meter">Failed to add meter</string>
+    <string name="error_failed_save_reading">Failed to save reading</string>
+    <string name="error_failed_update_reminder">Failed to update reminder</string>
+    <string name="message_meter_added">Meter added</string>
+    <string name="message_reading_saved">Reading saved</string>
 </resources>
