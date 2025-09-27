@@ -7,6 +7,7 @@ import com.example.kwh.R
 import com.example.kwh.data.MeterWithLatestReading
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(
+@HiltViewModel
+class HomeViewModel @Inject constructor(
     private val repository: MeterRepository,
     private val reminderScheduler: ReminderScheduler,
     private val context: Context
@@ -52,7 +54,7 @@ class HomeViewModel(
     fun addMeter(name: String, reminderFrequencyDays: Int, hour: Int, minute: Int) {
         val sanitizedName = name.trim()
         if (sanitizedName.isBlank()) {
-            emitError(context.getString(R.string.error_meter_name_empty))
+            emitError(context.getString(R.string.error_meter_name_blank))
             return
         }
         val frequency = reminderFrequencyDays.coerceAtLeast(1)
@@ -62,16 +64,13 @@ class HomeViewModel(
             runCatching {
                 repository.addMeter(sanitizedName, frequency, sanitizedHour, sanitizedMinute)
             }.onSuccess {
-                _events.send(HomeEvent.ShowMessage(context.getString(R.string.message_meter_added)))
-            }.onFailure {
-                emitError(context.getString(R.string.error_failed_add_meter))
             }
         }
     }
 
     fun addReading(meterId: Long, value: Double, notes: String?) {
         if (value.isNaN() || value <= 0.0) {
-            emitError(context.getString(R.string.error_positive_reading))
+emitError(context.getString(R.string.error_positive_reading))
             return
         }
         viewModelScope.launch {
@@ -83,9 +82,6 @@ class HomeViewModel(
                     recordedAt = System.currentTimeMillis()
                 )
             }.onSuccess {
-                _events.send(HomeEvent.ShowMessage(context.getString(R.string.message_reading_saved)))
-            }.onFailure {
-                emitError(context.getString(R.string.error_failed_save_reading))
             }
         }
     }
@@ -116,9 +112,7 @@ class HomeViewModel(
                     } else {
                         reminderScheduler.disableReminder(meterId)
                     }
-                }
-            }.onFailure {
-                emitError(context.getString(R.string.error_failed_update_reminder))
+
             }
         }
     }
