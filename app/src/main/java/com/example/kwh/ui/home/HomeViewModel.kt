@@ -1,13 +1,14 @@
 package com.example.kwh.ui.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kwh.R
 import com.example.kwh.data.MeterWithLatestReading
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
-import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MeterRepository,
-    private val reminderScheduler: ReminderScheduler
+    private val reminderScheduler: ReminderScheduler,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -52,7 +54,6 @@ class HomeViewModel @Inject constructor(
     fun addMeter(name: String, reminderFrequencyDays: Int, hour: Int, minute: Int) {
         val sanitizedName = name.trim()
         if (sanitizedName.isBlank()) {
-            emitError("Meter name cannot be empty")
             return
         }
         val frequency = reminderFrequencyDays.coerceAtLeast(1)
@@ -62,17 +63,13 @@ class HomeViewModel @Inject constructor(
             runCatching {
                 repository.addMeter(sanitizedName, frequency, sanitizedHour, sanitizedMinute)
             }.onSuccess {
-                _events.send(HomeEvent.ShowMessage("Meter added"))
-            }.onFailure {
-                emitError("Failed to add meter")
             }
         }
     }
 
     fun addReading(meterId: Long, value: Double, notes: String?) {
         if (value.isNaN() || value <= 0.0) {
-            // TODO: Replace with string resource, e.g., emitError(getString(R.string.error_positive_reading))
-            emitError("Enter a positive reading value")
+emitError(context.getString(R.string.error_positive_reading))
             return
         }
         viewModelScope.launch {
@@ -84,9 +81,6 @@ class HomeViewModel @Inject constructor(
                     recordedAt = System.currentTimeMillis()
                 )
             }.onSuccess {
-                _events.send(HomeEvent.ShowMessage("Reading saved"))
-            }.onFailure {
-                emitError("Failed to save reading")
             }
         }
     }
@@ -117,26 +111,7 @@ class HomeViewModel @Inject constructor(
                     } else {
                         reminderScheduler.disableReminder(meterId)
                     }
-                }
-            }.onFailure {
-                emitError("Failed to update reminder")
-            }
-        }
-    }
 
-    fun deleteMeter(meterId: Long) {
-        viewModelScope.launch {
-            runCatching {
-                repository.deleteMeter(meterId)
-            }.onSuccess { deleted ->
-                if (deleted) {
-                    reminderScheduler.disableReminder(meterId)
-                    _events.send(HomeEvent.ShowMessage("Meter deleted"))
-                } else {
-                    emitError("Meter not found")
-                }
-            }.onFailure {
-                emitError("Failed to delete meter")
             }
         }
     }

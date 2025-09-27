@@ -118,7 +118,6 @@ class MeterReminderWorker(
         private const val KEY_HOUR = "key_hour"
         private const val KEY_MINUTE = "key_minute"
         private const val KEY_SNOOZE_MINUTES = "key_snooze_minutes"
-        private const val TAG = "MeterReminderWorker"
         const val EXTRA_METER_ID = "extra_meter_id"
         const val EXTRA_METER_NAME = "extra_meter_name"
         const val EXTRA_FREQUENCY_DAYS = "extra_frequency"
@@ -133,7 +132,6 @@ class MeterReminderWorker(
             frequencyDays: Int,
             hour: Int,
             minute: Int,
-            snoozeMinutes: Int
         ) {
             val delay = ReminderScheduler.nextReminderDelay(frequencyDays, hour, minute)
             Log.d(TAG, "Scheduling reminder for meter=$meterId delay=$delay")

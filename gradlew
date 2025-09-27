@@ -204,6 +204,30 @@ fi
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
 
+# Check if gradle-wrapper.jar exists
+GRADLE_WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$GRADLE_WRAPPER_JAR" ]; then
+    cat >&2 << EOF
+Error: Unable to find the Gradle wrapper JAR at:
+    $GRADLE_WRAPPER_JAR
+
+The Gradle wrapper JAR is not included in version control to avoid binary files.
+Please generate it using a local Gradle installation:
+
+    gradle wrapper
+
+Then retry running this script.
+
+If you don't have Gradle installed locally, you can:
+1. Install Gradle: https://gradle.org/install/
+2. Or use the Gradle wrapper from another project
+3. Or download the specific Gradle distribution manually from:
+   https://services.gradle.org/distributions/
+
+EOF
+    exit 1
+fi
+
 # Collect all arguments for the java command:
 #   * DEFAULT_JVM_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
 #     and any embedded shellness will be escaped.
@@ -213,7 +237,7 @@ DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
 set -- \
         "-Dorg.gradle.appname=$APP_BASE_NAME" \
         -classpath "$CLASSPATH" \
-        -jar "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" \
+        -jar "$GRADLE_WRAPPER_JAR" \
         "$@"
 
 # Stop when "xargs" is not available.

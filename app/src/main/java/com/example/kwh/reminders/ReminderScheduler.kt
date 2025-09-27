@@ -5,18 +5,6 @@ import com.example.kwh.data.MeterEntity
 import com.example.kwh.settings.SettingsRepository
 import java.time.Duration
 import java.time.ZonedDateTime
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-
-@Singleton
-open class ReminderScheduler @Inject constructor(
-    private val context: Context,
-    private val settingsRepository: SettingsRepository
-) {
-
-    open fun enableReminder(meter: MeterEntity) {
         MeterReminderWorker.scheduleReminder(
             context = context,
             meterId = meter.id,
@@ -24,7 +12,6 @@ open class ReminderScheduler @Inject constructor(
             frequencyDays = meter.reminderFrequencyDays,
             hour = meter.reminderHour,
             minute = meter.reminderMinute,
-            snoozeMinutes = currentSnoozeMinutes()
         )
     }
 

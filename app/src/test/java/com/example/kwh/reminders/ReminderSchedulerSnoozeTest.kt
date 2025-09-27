@@ -28,14 +28,6 @@ class ReminderSchedulerSnoozeTest {
 
     @BeforeTest
     fun setup() {
-        if (!initialized) {
-            val configuration = Configuration.Builder()
-                .setMinimumLoggingLevel(android.util.Log.DEBUG)
-                .setExecutor(SynchronousExecutor())
-                .build()
-            WorkManagerTestInitHelper.initializeTestWorkManager(context, configuration)
-            initialized = true
-        }
         clearDataStore()
         WorkManager.getInstance(context).cancelAllWork().result.get()
         WorkManager.getInstance(context).pruneWork().result.get()
@@ -106,7 +98,3 @@ class ReminderSchedulerSnoozeTest {
         datastoreDir.listFiles()?.forEach { it.delete() }
     }
 
-    companion object {
-        private var initialized = false
-    }
-}
