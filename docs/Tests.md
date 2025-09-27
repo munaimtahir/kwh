@@ -10,10 +10,9 @@
 
 ## Integration
 - WorkManager enqueue/cancel per meter; verify unique work and reschedule.
-- Snooze broadcast schedules WorkManager delay respecting settings.
 
 ## Acceptance Checklist
-- [x] First-run: no meters → empty state visible.
-- [x] Create meter, add reading → latest shows on card.
-- [x] Toggle reminder → permission ask on API 33+; schedule respected.
-- [x] Delete meter → card disappears; readings removed.
+- [ ] First-run: no meters → empty state visible.
+- [ ] Create meter, add reading → latest shows on card.
+- [ ] Toggle reminder → permission ask on API 33+; schedule respected.
+- [ ] Delete meter → card disappears; readings removed.

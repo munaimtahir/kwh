@@ -21,9 +21,6 @@ interface MeterDao {
     @Query("SELECT * FROM meter_readings WHERE meter_id = :meterId ORDER BY recorded_at DESC")
     fun observeReadingsForMeter(meterId: Long): Flow<List<MeterReadingEntity>>
 
-    @Query("SELECT * FROM meter_readings WHERE id = :readingId")
-    suspend fun getReadingById(readingId: Long): MeterReadingEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeter(meter: MeterEntity): Long
 
@@ -34,11 +31,5 @@ interface MeterDao {
     suspend fun deleteMeter(meter: MeterEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReading(reading: MeterReadingEntity): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReadings(readings: List<MeterReadingEntity>)
-
-    @Query("DELETE FROM meter_readings WHERE id = :readingId")
-    suspend fun deleteReadingById(readingId: Long)
+    suspend fun insertReading(reading: MeterReadingEntity)
 }

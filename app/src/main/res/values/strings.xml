@@ -10,10 +10,10 @@
     <string name="reading_value">Reading value</string>
     <string name="reading_notes">Notes</string>
     <string name="reminder_frequency_days">Reminder frequency (days)</string>
-    <string name="reminder_time_hour">Hour</string>
-    <string name="reminder_time_minute">Minute</string>
-    <string name="last_recorded_value">Last recorded: %1$.2f kWh</string>
+    <string name="reminder_time">Reminder time</string>
+    <string name="last_recorded">Last recorded</string>
     <string name="no_readings_yet">No readings yet</string>
-    <string name="next_reminder">Next reminder: %1$s</string>
+    <string name="next_reminder">Next reminder</string>
     <string name="reminder_notification_title">Time to log your meter reading</string>
-<</resources>
+
+</resources>

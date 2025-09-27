@@ -5,6 +5,15 @@ import com.example.kwh.data.MeterEntity
 import com.example.kwh.settings.SettingsRepository
 import java.time.Duration
 import java.time.ZonedDateTime
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+
+class ReminderScheduler(
+    private val context: Context,
+    private val settingsRepository: SettingsRepository
+) {
+    fun enableReminder(meter: MeterEntity) {
+        val snoozeMinutes = currentSnoozeMinutes()
         MeterReminderWorker.scheduleReminder(
             context = context,
             meterId = meter.id,
@@ -12,10 +21,11 @@ import java.time.ZonedDateTime
             frequencyDays = meter.reminderFrequencyDays,
             hour = meter.reminderHour,
             minute = meter.reminderMinute,
+            snoozeMinutes = snoozeMinutes
         )
     }
 
-    open fun disableReminder(meterId: Long) {
+    fun disableReminder(meterId: Long) {
         MeterReminderWorker.cancelReminder(context, meterId)
     }
 
@@ -27,18 +37,15 @@ import java.time.ZonedDateTime
         fun nextReminderTime(frequencyDays: Int, hour: Int, minute: Int): ZonedDateTime {
             val now = ZonedDateTime.now()
             var next = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
-            val minNext = now.plusMinutes(1)
-            val step = frequencyDays.toLong().coerceAtLeast(1)
-            while (!next.isAfter(minNext)) {
-                next = next.plusDays(step)
+            if (!next.isAfter(now)) {
+                next = next.plusDays(frequencyDays.toLong().coerceAtLeast(1))
             }
             return next
         }
 
         fun nextReminderDelay(frequencyDays: Int, hour: Int, minute: Int): Duration {
             val next = nextReminderTime(frequencyDays, hour, minute)
-            val delay = Duration.between(ZonedDateTime.now(), next)
-            return if (delay.isNegative) Duration.ZERO else delay
+            return Duration.between(ZonedDateTime.now(), next)
         }
     }
 }

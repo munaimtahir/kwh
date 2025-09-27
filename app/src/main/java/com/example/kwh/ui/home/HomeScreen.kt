@@ -8,24 +8,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.kwh.R
 import com.example.kwh.ui.components.NumberField
@@ -48,11 +39,9 @@ import com.example.kwh.ui.components.SectionCard
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    snackbarHostState: SnackbarHostState,
     onAddMeterClick: () -> Unit,
     onAddMeter: (String, Int, Int, Int) -> Unit,
     onDismissAddMeter: () -> Unit,
@@ -60,24 +49,13 @@ fun HomeScreen(
     onAddReading: (Long, Double, String?) -> Unit,
     onDismissReading: () -> Unit,
     onReminderChanged: (Long, Boolean, Int, Int, Int) -> Unit,
-    onViewHistory: (Long) -> Unit,
-    onDeleteMeter: (Long) -> Unit,
-    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text(text = stringResource(id = R.string.meters)) },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(imageVector = Icons.Filled.Settings, contentDescription = stringResource(id = R.string.settings_title))
-                    }
-                }
-            )
+            TopAppBar(title = { Text(text = stringResource(id = R.string.meters)) })
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddMeterClick) {
                 Icon(
@@ -97,12 +75,7 @@ fun HomeScreen(
             ) {
                 Text(
                     text = stringResource(id = R.string.no_readings_yet),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(id = R.string.empty_state_hint),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         } else {
@@ -119,9 +92,7 @@ fun HomeScreen(
                         onAddReadingClick = { onAddReadingClick(meter.id) },
                         onReminderChanged = { enabled, frequency, hour, minute ->
                             onReminderChanged(meter.id, enabled, frequency, hour, minute)
-                        },
-                        onViewHistory = { onViewHistory(meter.id) },
-                        onDeleteMeter = { onDeleteMeter(meter.id) }
+                        }
                     )
                 }
             }
@@ -154,41 +125,11 @@ fun HomeScreen(
 private fun MeterCard(
     meter: MeterItem,
     onAddReadingClick: () -> Unit,
-    onReminderChanged: (Boolean, Int, Int, Int) -> Unit,
-    onViewHistory: () -> Unit,
-    onDeleteMeter: () -> Unit
+    onReminderChanged: (Boolean, Int, Int, Int) -> Unit
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
     SectionCard {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = meter.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    meter.nextReminder?.let { instant ->
-                        val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
-                        Text(
-                            text = stringResource(id = R.string.next_reminder, formatter.format(instant.atZone(ZoneId.systemDefault()))),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(id = R.string.delete_meter)
-                    )
-                }
-            }
+            Text(text = meter.name, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
             meter.latestReading?.let { reading ->
                 val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
@@ -196,60 +137,28 @@ private fun MeterCard(
                     formatter.format(reading.recordedAt.atZone(ZoneId.systemDefault()))
                 }
                 Text(
-                    text = stringResource(id = R.string.last_recorded_value, reading.value),
+                    text = "${stringResource(id = R.string.last_recorded)}: ${reading.value} kWh",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     text = formatted,
                     style = MaterialTheme.typography.bodySmall
                 )
-                reading.notes?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall)
-                }
             } ?: Text(
                 text = stringResource(id = R.string.no_readings_yet),
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PrimaryButton(
-                    text = stringResource(id = R.string.add_reading),
-                    onClick = onAddReadingClick,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = onViewHistory) {
-                    Icon(imageVector = Icons.Filled.History, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = stringResource(id = R.string.view_history))
-                }
-            }
+            PrimaryButton(
+                text = stringResource(id = R.string.add_reading),
+                onClick = onAddReadingClick
+            )
             Spacer(modifier = Modifier.height(12.dp))
             ReminderSettings(
                 meter = meter,
                 onReminderChanged = onReminderChanged
             )
         }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text(text = stringResource(id = R.string.delete_meter)) },
-            text = { Text(text = stringResource(id = R.string.delete_meter_confirm, meter.name)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog = false
-                    onDeleteMeter()
-                }) {
-                    Text(text = stringResource(id = R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(text = stringResource(id = R.string.cancel))
-                }
-            }
-        )
     }
 }
 
@@ -306,14 +215,14 @@ private fun ReminderSettings(
             NumberField(
                 value = hourText,
                 onValueChange = { hourText = it },
-                label = stringResource(id = R.string.reminder_time_hour),
+                label = stringResource(id = R.string.reminder_time) + " (h)",
                 modifier = Modifier.weight(1f),
                 maxLength = 2
             )
             NumberField(
                 value = minuteText,
                 onValueChange = { minuteText = it },
-                label = stringResource(id = R.string.reminder_time_minute),
+                label = "(m)",
                 modifier = Modifier.weight(1f),
                 maxLength = 2
             )
@@ -331,6 +240,13 @@ private fun ReminderSettings(
                 )
             }
         )
+        meter.nextReminder?.let { instant ->
+            val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
+            Text(
+                text = "${stringResource(id = R.string.next_reminder)}: ${formatter.format(instant.atZone(ZoneId.systemDefault()))}",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
@@ -357,20 +273,15 @@ private fun AddMeterDialog(
     var frequencyText by remember { mutableStateOf("30") }
     var hourText by remember { mutableStateOf("9") }
     var minuteText by remember { mutableStateOf("0") }
-    var showError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                if (name.isBlank()) {
-                    showError = true
-                    return@TextButton
-                }
                 val frequency = frequencyText.toIntOrNull()?.coerceAtLeast(1) ?: 30
                 val hour = hourText.toIntOrNull()?.coerceIn(0, 23) ?: 9
                 val minute = minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0
-                onSave(name.trim(), frequency, hour, minute)
+                onSave(name.ifBlank { "Meter" }, frequency, hour, minute)
             }) {
                 Text(text = stringResource(id = R.string.save))
             }
@@ -385,21 +296,10 @@ private fun AddMeterDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextField(
                     value = name,
-                    onValueChange = {
-                        name = it
-                        if (showError && it.isNotBlank()) showError = false
-                    },
+                    onValueChange = { name = it },
                     label = { Text(text = stringResource(id = R.string.meter)) },
-                    isError = showError,
                     singleLine = true
                 )
-                if (showError) {
-                    Text(
-                        text = stringResource(id = R.string.meter_name_error),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
                 NumberField(
                     value = frequencyText,
                     onValueChange = { frequencyText = it },
@@ -410,14 +310,14 @@ private fun AddMeterDialog(
                     NumberField(
                         value = hourText,
                         onValueChange = { hourText = it },
-                        label = stringResource(id = R.string.reminder_time_hour),
+                        label = "Hour",
                         modifier = Modifier.weight(1f),
                         maxLength = 2
                     )
                     NumberField(
                         value = minuteText,
                         onValueChange = { minuteText = it },
-                        label = stringResource(id = R.string.reminder_time_minute),
+                        label = "Minute",
                         modifier = Modifier.weight(1f),
                         maxLength = 2
                     )
@@ -435,17 +335,12 @@ private fun AddReadingDialog(
 ) {
     var readingText by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var showError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                val value = readingText.toDoubleOrNull()
-                if (value == null || value <= 0.0) {
-                    showError = true
-                    return@TextButton
-                }
+                val value = readingText.toDoubleOrNull() ?: return@TextButton
                 onSave(meterId, value, notes.ifBlank { null })
             }) {
                 Text(text = stringResource(id = R.string.save))
@@ -461,20 +356,10 @@ private fun AddReadingDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
                     value = readingText,
-                    onValueChange = {
-                        readingText = it
-                        if (showError) showError = false
-                    },
+                    onValueChange = { readingText = it },
                     label = stringResource(id = R.string.reading_value),
                     allowDecimal = true
                 )
-                if (showError) {
-                    Text(
-                        text = stringResource(id = R.string.reading_value_error),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
                 TextField(
                     value = notes,
                     onValueChange = { notes = it },

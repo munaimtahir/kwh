@@ -3,11 +3,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFCC00"
-        android:pathData="M54,12L36,60h16l-4,36l24,-48h-18z" />
-    <path
-        android:fillColor="#1B5E20"
-        android:fillAlpha="0.15"
-        android:pathData="M12,12h84v84h-84z" />
+    <group android:translateX="18" android:translateY="18">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M36,0a36,36 0,1 1 -72,0 36,36 0,0 1 72,0z" />
+        <path
+            android:fillColor="#4CAF50"
+            android:pathData="M-12,12h48v12h-48z" />
+        <path
+            android:fillColor="#2E7D32"
+            android:pathData="M0,6h24v12h-24z" />
+    </group>
 </vector>
