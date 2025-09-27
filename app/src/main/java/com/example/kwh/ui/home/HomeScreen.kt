@@ -167,10 +167,18 @@ private fun ReminderSettings(
     meter: MeterItem,
     onReminderChanged: (Boolean, Int, Int, Int) -> Unit
 ) {
-    var reminderEnabled by remember(meter.id) { mutableStateOf(meter.reminderEnabled) }
-    var frequencyText by remember(meter.id) { mutableStateOf(meter.reminderFrequencyDays.toString()) }
-    var hourText by remember(meter.id) { mutableStateOf(meter.reminderHour.toString()) }
-    var minuteText by remember(meter.id) { mutableStateOf(meter.reminderMinute.toString()) }
+    var reminderEnabled by remember(meter.id, meter.reminderEnabled) {
+        mutableStateOf(meter.reminderEnabled)
+    }
+    var frequencyText by remember(meter.id, meter.reminderFrequencyDays) {
+        mutableStateOf(meter.reminderFrequencyDays.toString())
+    }
+    var hourText by remember(meter.id, meter.reminderHour) {
+        mutableStateOf(meter.reminderHour.toString())
+    }
+    var minuteText by remember(meter.id, meter.reminderMinute) {
+        mutableStateOf(meter.reminderMinute.toString())
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
