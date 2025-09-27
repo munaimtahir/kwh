@@ -54,6 +54,7 @@ class HomeViewModel @Inject constructor(
     fun addMeter(name: String, reminderFrequencyDays: Int, hour: Int, minute: Int) {
         val sanitizedName = name.trim()
         if (sanitizedName.isBlank()) {
+            emitError(context.getString(R.string.error_meter_name_blank))
             return
         }
         val frequency = reminderFrequencyDays.coerceAtLeast(1)
