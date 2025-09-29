@@ -1,0 +1,68 @@
+<resources>
+    <!-- Application name and high-level UI labels -->
+    <string name="app_name">kWh Logger</string>
+    <string name="meter">Meter</string>
+    <string name="meters">Meters</string>
+    <string name="add_meter">Add meter</string>
+    <string name="add_reading">Add reading</string>
+    <string name="view_history">History</string>
+    <string name="set_reminder">Set reminder</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="back">Back</string>
+
+    <!-- Home screen strings -->
+    <string name="reading_value">Reading value</string>
+    <string name="reading_notes">Notes</string>
+    <string name="reminder_frequency_days">Reminder frequency (days)</string>
+    <string name="reminder_time_hour">Hour</string>
+    <string name="reminder_time_minute">Minute</string>
+    <string name="last_recorded_value">Last recorded: %1$.2f kWh</string>
+    <string name="no_readings_yet">No readings yet</string>
+    <string name="empty_state_hint">Tap the + button to add your first meter.</string>
+    <string name="next_reminder">Next reminder: %1$s</string>
+    <string name="meter_name_error">Please enter a name for the meter</string>
+    <string name="reading_value_error">Please enter a positive reading</string>
+    <string name="error_meter_name_blank">Meter name cannot be blank</string>
+    <string name="error_positive_reading">Reading must be a positive number</string>
+    <string name="error_deleting_meter">Failed to delete meter</string>
+
+    <!-- History screen strings -->
+    <string name="history_title">History</string>
+    <string name="history_empty">No readings yet</string>
+    <string name="delete_meter">Delete meter</string>
+    <string name="delete_meter_confirm">Delete %1$s?</string>
+    <string name="delete_reading">Delete reading</string>
+    <string name="history_reading_value">%1$.2f kWh</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="import_csv">Import CSV</string>
+    <string name="csv_export_started">Exporting CSV…</string>
+    <plurals name="imported_count">
+        <item quantity="one">%1$d reading imported</item>
+        <item quantity="other">%1$d readings imported</item>
+    </plurals>
+    <string name="csv_subject">Meter history for %1$s</string>
+    <string name="import_failed">Import failed</string>
+    <string name="history_empty_state">No history available</string>
+    <string name="undo">Undo</string>
+    <string name="reading_deleted">Reading deleted</string>
+    <string name="meter_deleted">Meter deleted</string>
+
+    <!-- Reminder notification strings -->
+    <string name="reminder_notification_title">Time to log your meter reading</string>
+    <string name="snooze_for_minutes">Snooze for %1$d minutes</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="dark_theme">Dark theme</string>
+    <string name="snooze_minutes">Snooze (minutes)</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="notification_permission_rationale">Notification permission is required for reminders</string>
+
+    <!-- Settings screen labels -->
+    <string name="settings_dark_mode">Dark theme</string>
+    <string name="settings_dark_mode_desc">Use a dark color scheme</string>
+    <string name="settings_snooze_title">Snooze duration</string>
+    <string name="settings_snooze_summary">Snooze for %1$d minutes</string>
+</resources>
