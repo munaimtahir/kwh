@@ -40,6 +40,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enable core library desugaring so that java.time and other
+        // modern Java APIs are available on older API levels.  Without
+        // this flag, using classes like java.time.Instant will cause
+        // build failures on API < 26.  See the Android docs for details.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions { jvmTarget = "17" }
 
@@ -49,8 +54,11 @@ android {
 }
 
 dependencies {
-    // Compose BOM keeps versions aligned
-    val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
+    // Compose BOM keeps versions aligned.  The previously referenced
+    // 2024.10.01 version does not exist in the public repositories and
+    // caused dependency resolution errors.  The latest stable BOM
+    // available as of September 2025 is 2025.09.01.
+    val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -91,6 +99,19 @@ dependencies {
     // Coroutines & Lifecycle
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+
+    // Lifecycle integrations for Compose.  These libraries provide
+    // collectAsStateWithLifecycle and ViewModel support for Compose
+    // components.  Without them, compilation fails due to missing
+    // symbols when using collectAsStateWithLifecycle in the UI code.
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+
+    // Core library desugaring dependency.  Paired with
+    // isCoreLibraryDesugaringEnabled in compileOptions, this pulls in
+    // the desugared JDK libraries to support Java 8+ APIs such as
+    // java.time on older Android versions.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // Tests
     testImplementation("junit:junit:4.13.2")
