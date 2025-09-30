@@ -1,9 +1,7 @@
 // Top level build configuration using buildscript block for compatibility
 buildscript {
     repositories {
-        maven {
-            url = uri("https://maven.google.com")
-        }
+        google()
         mavenCentral()
     }
     dependencies {
