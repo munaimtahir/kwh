@@ -8,6 +8,7 @@ import com.example.kwh.data.MeterWithLatestReading
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import java.time.Instant
 import kotlinx.coroutines.channels.Channel
@@ -22,7 +23,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: MeterRepository,
     private val reminderScheduler: ReminderScheduler,
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
