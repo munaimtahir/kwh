@@ -1,4 +1,16 @@
 # Changelog
+## [Unreleased] — 2025-09-30
+### Build System & CI Fixes
+- Fixed invalid Compose BOM version (2025.09.01 → 2024.10.00)
+- Fixed non-existent Android Gradle Plugin version (8.6.1 → 8.4.0)
+- Migrated from plugins DSL to buildscript approach for better AGP compatibility
+- Added missing test dependencies: Robolectric, WorkManager testing, coroutines-test, Turbine
+- Added Hilt testing dependencies for instrumentation tests
+- Configured testOptions for Robolectric with includeAndroidResources
+- Streamlined GitHub Actions workflow by removing unnecessary android-actions/setup-android
+- Added Gradle caching via gradle/actions/setup-gradle for faster CI builds
+- Added unit test execution and test results artifact upload to CI workflow
+
 ## [1.0.1] — 2024-11-26
 - Added CSV import success snackbar and pluralized messaging for imported readings.
 - Tuned reminder notification snooze action to reflect configured duration.
