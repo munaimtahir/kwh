@@ -1,5 +1,7 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Minimal Material3 XML theme; Compose does most theming in code -->
     <style name="Theme.Kwh" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/seed</item>
+        <!-- Add XML color overrides later if needed -->
     </style>
 </resources>
