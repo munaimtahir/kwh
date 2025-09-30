@@ -2,42 +2,48 @@ name: Android CI
 
 on:
   push:
-    branches: [ main, feature/** ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-- name: Diagnose layout
-  run: |
-    echo "PWD=$(pwd)"
-    ls -lah
-    find . -maxdepth 4 -name gradlew -print
-    [ -f gradle.properties ] && echo "gradle.properties:" && cat gradle.properties || true
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Make Gradle executable
+      - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
+
+      - name: Diagnose project layout
+        run: |
+          echo "PWD=$(pwd)"
+          ls -lah
+          echo "---- gradle/ ----"
+          ls -lah gradle || true
+          echo "---- gradle/wrapper/ ----"
+          ls -lah gradle/wrapper || true
+          echo "---- gradle.properties ----"
+          cat gradle.properties || echo "gradle.properties not found"
+          echo "---- settings.gradle(.kts) ----"
+          ls -lah settings.gradle* || true
 
       - name: Build Debug APK
         run: ./gradlew --no-daemon clean assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
-
