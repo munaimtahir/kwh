@@ -44,7 +44,9 @@ fun NumberField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    imeAction: ImeAction = ImeAction.Done
+    imeAction: ImeAction = ImeAction.Done,
+    maxLength: Int? = null,
+    allowDecimal: Boolean = true
 ) {
     LabeledTextField(
         value = value,
@@ -54,11 +56,16 @@ fun NumberField(
                 for (ch in new) {
                     when {
                         ch.isDigit() -> append(ch)
-                        ch == '.' && !dotSeen -> { append(ch); dotSeen = true }
+                        ch == '.' && allowDecimal && !dotSeen -> { append(ch); dotSeen = true }
                     }
                 }
             }
-            onValueChange(filtered)
+            val result = if (maxLength != null && filtered.length > maxLength) {
+                filtered.take(maxLength)
+            } else {
+                filtered
+            }
+            onValueChange(result)
         },
         label = label,
         modifier = modifier,
