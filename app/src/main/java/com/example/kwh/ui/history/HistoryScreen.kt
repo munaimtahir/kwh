@@ -222,8 +222,6 @@ private fun TrendChart(data: TrendChartData) {
     val maxValue = data.points.maxOf { it.value }
     val minValue = data.points.minOf { it.value }
     val span = (maxValue - minValue).takeIf { it != 0.0 } ?: 1.0
-    
-    val primaryColor = MaterialTheme.colorScheme.primary
 
     Canvas(
         modifier = Modifier
@@ -243,7 +241,7 @@ private fun TrendChart(data: TrendChartData) {
         }
         drawPath(
             path = path,
-            color = primaryColor,
+            color = MaterialTheme.colorScheme.primary,
             style = Stroke(width = 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
     }
