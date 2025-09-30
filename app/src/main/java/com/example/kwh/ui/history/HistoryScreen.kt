@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -55,6 +56,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
@@ -175,6 +177,7 @@ fun HistoryScreen(
         }
     }
 
+    // ✅ This is now safe because it's inside a composable context.
     if (uiState.showDeleteMeterDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.toggleDeleteMeterDialog(false) },
@@ -215,9 +218,7 @@ private fun FilterChips(selected: HistoryFilter, onSelected: (HistoryFilter) -> 
 
 @Composable
 private fun TrendChart(data: TrendChartData) {
-    if (data.points.size < 2) {
-        return
-    }
+    if (data.points.size < 2) return
     val maxValue = data.points.maxOf { it.value }
     val minValue = data.points.minOf { it.value }
     val span = (maxValue - minValue).takeIf { it != 0.0 } ?: 1.0
@@ -236,11 +237,7 @@ private fun TrendChart(data: TrendChartData) {
             val x = step * index
             val normalized = (point.value - minValue) / span
             val y = height - (normalized.toFloat() * height)
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         drawPath(
             path = path,
