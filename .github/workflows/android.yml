@@ -7,6 +7,12 @@ on:
     branches: [ main ]
 
 jobs:
+- name: Diagnose layout
+  run: |
+    echo "PWD=$(pwd)"
+    ls -lah
+    find . -maxdepth 4 -name gradlew -print
+    [ -f gradle.properties ] && echo "gradle.properties:" && cat gradle.properties || true
   build:
     runs-on: ubuntu-latest
 
