@@ -74,7 +74,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
-    // Material Components (provides XML Material themes/attrs)
+    // Material Components (XML themes/attrs)
     implementation("com.google.android.material:material:1.12.0")
 
     // Hilt
