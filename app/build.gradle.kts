@@ -57,7 +57,7 @@ dependencies {
     // Compose BOM keeps versions aligned.  The previously referenced
     // 2024.10.01 version does not exist in the public repositories and
     // caused dependency resolution errors.  The latest stable BOM
-    // available as of September 2025 is 2025.09.01【199518996393075†L94-L104】.
+    // available as of September 2025 is 2025.09.01.
     val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
