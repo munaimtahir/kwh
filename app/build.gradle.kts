@@ -24,7 +24,7 @@ android {
         debug { isMinifyEnabled = false }
         release {
             isMinifyEnabled = false
-            // If/when you enable, keep:
+            // If/when you enable shrinking/obfuscation:
             // proguardFiles(
             //     getDefaultProguardFile("proguard-android-optimize.txt"),
             //     "proguard-rules.pro"
@@ -35,21 +35,21 @@ android {
     buildFeatures { compose = true }
 
     composeOptions {
-        // Compatible with Compose BOM used below
+        // Compatible with the Compose BOM used below
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // Enable core library desugaring so java.time and other modern
-        // Java APIs work on API < 26.
+        // Enable desugaring so java.time and other modern Java APIs
+        // work on API < 26.
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
         jvmTarget = "17"
-        // Opt-in to experimental Material3 API used in Settings/History screens
+        // Opt-in to experimental Material3 APIs used in the app
         freeCompilerArgs += listOf(
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
@@ -61,8 +61,7 @@ android {
 }
 
 dependencies {
-    // Compose BOM keeps versions aligned. Previous 2024.10.01 did not exist.
-    // Use stable as of Sept 2025:
+    // Compose BOM keeps Compose libs in sync
     val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -74,21 +73,21 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     implementation("androidx.compose.material3:material3")
 
-    // Foundation & Material icons (CloudUpload/CloudDownload/History)
+    // Foundation & Icons used in UI (CloudUpload/CloudDownload/History)
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // Activity + Navigation
+    // Explicit text module (KeyboardOptions, etc.)
+    implementation("androidx.compose.ui:ui-text")
+
+    // Activity + Navigation (Compose)
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
-    // Explicit text module for KeyboardOptions, etc.
-    implementation("androidx.compose.ui:ui-text")
-
-    // Material Components (XML themes/attrs if any view XML is used)
+    // Material Components (if any XML views/themes reference it)
     implementation("com.google.android.material:material:1.12.0")
 
-    // Hilt
+    // Hilt (DI)
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
@@ -108,11 +107,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
 
-    // Compose ↔ Lifecycle integrations (fixes collectAsStateWithLifecycle)
+    // Compose ↔ Lifecycle integrations (collectAsStateWithLifecycle, etc.)
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
-    // Core library desugaring (pairs with isCoreLibraryDesugaringEnabled=true)
+    // Desugared JDK libs (pairs with isCoreLibraryDesugaringEnabled = true)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // Tests
@@ -121,3 +120,4 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
+```0
