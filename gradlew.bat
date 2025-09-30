@@ -13,8 +13,6 @@
 @rem See the License for the specific language governing permissions and
 @rem limitations under the License.
 @rem
-@rem SPDX-License-Identifier: Apache-2.0
-@rem
 
 @if "%DEBUG%"=="" @echo off
 @rem ##########################################################################
@@ -70,33 +68,11 @@ goto fail
 :execute
 @rem Setup the command line
 
-set CLASSPATH=
+set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
-@rem Check if gradle-wrapper.jar exists
-set GRADLE_WRAPPER_JAR=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
-if not exist "%GRADLE_WRAPPER_JAR%" (
-    echo. 1>&2
-    echo Error: Unable to find the Gradle wrapper JAR at: 1>&2
-    echo     %GRADLE_WRAPPER_JAR% 1>&2
-    echo. 1>&2
-    echo The Gradle wrapper JAR is not included in version control to avoid binary files. 1>&2
-    echo Please generate it using a local Gradle installation: 1>&2
-    echo. 1>&2
-    echo     gradle wrapper 1>&2
-    echo. 1>&2
-    echo Then retry running this script. 1>&2
-    echo. 1>&2
-    echo If you don't have Gradle installed locally, you can: 1>&2
-    echo 1. Install Gradle: https://gradle.org/install/ 1>&2
-    echo 2. Or use the Gradle wrapper from another project 1>&2
-    echo 3. Or download the specific Gradle distribution manually from: 1>&2
-    echo    https://services.gradle.org/distributions/ 1>&2
-    echo. 1>&2
-    goto fail
-)
 
 @rem Execute Gradle
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" -jar "%GRADLE_WRAPPER_JAR%" %*
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
 
 :end
 @rem End local scope for the variables with windows NT shell
