@@ -35,15 +35,14 @@ android {
     buildFeatures { compose = true }
 
     composeOptions {
-        // Compatible with the Compose BOM used below
+        // Compatible with the Compose BOM below
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // Enable desugaring so java.time and other modern Java APIs
-        // work on API < 26.
+        // Enable desugaring so java.time works on API < 26
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -120,4 +119,3 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
-```0
