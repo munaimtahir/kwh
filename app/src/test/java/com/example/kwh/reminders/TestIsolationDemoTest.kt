@@ -2,21 +2,24 @@ package com.example.kwh.reminders
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.example.kwh.settings.SettingsRepository
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
  * This test demonstrates that the fix ensures proper test isolation.
  * Each test gets its own fresh WorkManager instance without relying on static state.
  */
+@RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
 class TestIsolationDemoTest {
 
@@ -24,7 +27,7 @@ class TestIsolationDemoTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var scheduler: ReminderScheduler
 
-    @BeforeTest
+    @Before
     fun setup() {
         // Each test gets fresh WorkManager initialization - no static state!
         val configuration = Configuration.Builder()
@@ -37,7 +40,7 @@ class TestIsolationDemoTest {
         scheduler = ReminderScheduler(context, settingsRepository)
     }
 
-    @AfterTest
+    @After
     fun tearDown() {
         WorkManager.getInstance(context).cancelAllWork().result.get()
     }

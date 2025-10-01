@@ -1,22 +1,25 @@
 package com.example.kwh.ui.home
 
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.kwh.data.MeterDatabase
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.settings.SettingsRepository
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
 class HomeViewModelTest {
 
@@ -25,7 +28,7 @@ class HomeViewModelTest {
     private lateinit var scheduler: RecordingScheduler
     private lateinit var viewModel: HomeViewModel
 
-    @BeforeTest
+    @Before
     fun setup() {
         database = androidx.room.Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
@@ -39,7 +42,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(repository, scheduler)
     }
 
-    @AfterTest
+    @After
     fun tearDown() {
         database.close()
     }

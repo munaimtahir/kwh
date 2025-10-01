@@ -3,6 +3,7 @@ package com.example.kwh.reminders
 import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
@@ -11,14 +12,16 @@ import com.example.kwh.data.MeterEntity
 import com.example.kwh.settings.SettingsRepository
 import java.io.File
 import java.util.concurrent.TimeUnit
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
+@RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
 class ReminderSchedulerSnoozeTest {
 
@@ -26,7 +29,7 @@ class ReminderSchedulerSnoozeTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var scheduler: ReminderScheduler
 
-    @BeforeTest
+    @Before
     fun setup() {
         clearDataStore()
         WorkManager.getInstance(context).cancelAllWork().result.get()
@@ -35,7 +38,7 @@ class ReminderSchedulerSnoozeTest {
         scheduler = ReminderScheduler(context, settingsRepository)
     }
 
-    @AfterTest
+    @After
     fun tearDown() {
         WorkManager.getInstance(context).cancelAllWork().result.get()
         clearDataStore()
