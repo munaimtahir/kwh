@@ -15,7 +15,7 @@ import java.time.ZonedDateTime
  * encapsulates access to the current snooze duration stored in [SettingsRepository]
  * and exposes convenience functions for clients to enable or disable reminders.
  */
-class ReminderScheduler @Inject constructor(
+open class ReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository
 ) {
@@ -24,7 +24,7 @@ class ReminderScheduler @Inject constructor(
      * Enable a reminder for the provided [meter]. A new WorkManager task is scheduled based
      * on the meter's reminder configuration and the user's current snooze duration.
      */
-    fun enableReminder(meter: MeterEntity) {
+    open fun enableReminder(meter: MeterEntity) {
         val snoozeMinutes = currentSnoozeMinutes()
         MeterReminderWorker.scheduleReminder(
             context = context,
@@ -40,7 +40,7 @@ class ReminderScheduler @Inject constructor(
     /**
      * Cancel any existing reminder associated with the given [meterId].
      */
-    fun disableReminder(meterId: Long) {
+    open fun disableReminder(meterId: Long) {
         MeterReminderWorker.cancelReminder(context, meterId)
     }
 
