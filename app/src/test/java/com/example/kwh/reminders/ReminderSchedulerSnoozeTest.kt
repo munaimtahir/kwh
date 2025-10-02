@@ -93,8 +93,8 @@ class ReminderSchedulerSnoozeTest {
         )
     }
 
-    private fun clearDataStore() {
+       private fun clearDataStore() {
         val datastoreDir = File(context.filesDir.parentFile, "datastore")
         datastoreDir.listFiles()?.forEach { it.delete() }
     }
-
+}
