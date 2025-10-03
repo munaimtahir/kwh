@@ -2,22 +2,21 @@ package com.example.kwh.reminders
 
 import android.content.Context
 import com.example.kwh.data.MeterEntity
-import com.example.kwh.settings.SettingsRepository
+import com.example.kwh.settings.SnoozePreferenceReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.time.Duration
 import java.time.ZonedDateTime
 
 /**
  * Schedules and cancels reminders for meters using [MeterReminderWorker]. This class
- * encapsulates access to the current snooze duration stored in [SettingsRepository]
+ * encapsulates access to the current snooze duration stored in [SnoozePreferenceReader]
  * and exposes convenience functions for clients to enable or disable reminders.
  */
 open class ReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val settingsRepository: SettingsRepository
+    private val snoozePreferenceReader: SnoozePreferenceReader
 ) {
 
     /**
@@ -26,8 +25,7 @@ open class ReminderScheduler @Inject constructor(
      */
     open fun enableReminder(meter: MeterEntity) {
         val snoozeMinutes = currentSnoozeMinutes()
-        MeterReminderWorker.scheduleReminder(
-            context = context,
+        scheduleReminder(
             meterId = meter.id,
             meterName = meter.name,
             frequencyDays = meter.reminderFrequencyDays,
@@ -44,12 +42,31 @@ open class ReminderScheduler @Inject constructor(
         MeterReminderWorker.cancelReminder(context, meterId)
     }
 
+    protected open fun scheduleReminder(
+        meterId: Long,
+        meterName: String,
+        frequencyDays: Int,
+        hour: Int,
+        minute: Int,
+        snoozeMinutes: Int
+    ) {
+        MeterReminderWorker.scheduleReminder(
+            context = context,
+            meterId = meterId,
+            meterName = meterName,
+            frequencyDays = frequencyDays,
+            hour = hour,
+            minute = minute,
+            snoozeMinutes = snoozeMinutes
+        )
+    }
+
     /**
      * Read the current snooze duration from preferences. This is a blocking operation
      * because it is only called from background threads or ViewModel scope.
      */
-    private fun currentSnoozeMinutes(): Int = runBlocking {
-        settingsRepository.settings.first().snoozeMinutes
+    protected open fun currentSnoozeMinutes(): Int = runBlocking {
+        snoozePreferenceReader.currentSnoozeMinutes()
     }
 
     companion object {

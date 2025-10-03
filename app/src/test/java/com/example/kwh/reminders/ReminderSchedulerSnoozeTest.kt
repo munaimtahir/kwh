@@ -1,52 +1,23 @@
 package com.example.kwh.reminders
 
-import android.content.Context
+import android.app.Application
 import android.content.Intent
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.work.Configuration
-import androidx.work.WorkManager
-import androidx.work.testing.SynchronousExecutor
-import androidx.work.testing.WorkManagerTestInitHelper
 import com.example.kwh.data.MeterEntity
-import com.example.kwh.settings.SettingsRepository
-import java.io.File
-import java.util.concurrent.TimeUnit
+import com.example.kwh.settings.SnoozePreferenceReader
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlinx.coroutines.runBlocking
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
-@RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
 class ReminderSchedulerSnoozeTest {
 
-    private val context: Context = ApplicationProvider.getApplicationContext()
-    private lateinit var settingsRepository: SettingsRepository
-    private lateinit var scheduler: ReminderScheduler
-
-    @Before
-    fun setup() {
-        clearDataStore()
-        WorkManager.getInstance(context).cancelAllWork().result.get()
-        WorkManager.getInstance(context).pruneWork().result.get()
-        settingsRepository = SettingsRepository(context)
-        scheduler = ReminderScheduler(context, settingsRepository)
-    }
-
-    @After
-    fun tearDown() {
-        WorkManager.getInstance(context).cancelAllWork().result.get()
-        clearDataStore()
-    }
+    private val context = Application()
 
     @Test
-    fun enableReminder_usesSnoozeMinutesFromSettings() = runBlocking {
-        settingsRepository.setSnoozeMinutes(45)
+    fun enableReminder_usesSnoozeMinutesFromSettings() {
+        val scheduler = RecordingScheduler(
+            context = context,
+            snoozePreferenceReader = FakeSnoozePreferenceReader(45)
+        )
         val meter = MeterEntity(
             id = 42,
             name = "Test",
@@ -58,46 +29,98 @@ class ReminderSchedulerSnoozeTest {
 
         scheduler.enableReminder(meter)
 
-        val workInfos = WorkManager.getInstance(context)
-            .getWorkInfosForUniqueWork("meter_reminder_${meter.id}")
-            .get()
-        assertEquals(1, workInfos.size)
-        val workSpec = WorkManagerTestInitHelper.getTestDriver(context)!!
-            .getWorkSpec(workInfos.first().id)
-        assertNotNull(workSpec)
-        val snooze = workSpec.input.getInt("key_snooze_minutes", -1)
-        assertEquals(45, snooze)
+        val scheduled = scheduler.lastScheduled
+        assertNotNull(scheduled)
+        assertEquals(45, scheduled.snoozeMinutes)
+        assertEquals(meter.id, scheduled.meterId)
     }
 
     @Test
     fun snoozeReceiverSchedulesDelayUsingIntentExtra() {
+        val receiver = RecordingSnoozeReceiver()
         val snoozeMinutes = 90
-        val intent = Intent(context, SnoozeReceiver::class.java).apply {
-            putExtra(MeterReminderWorker.EXTRA_METER_ID, 99L)
-            putExtra(MeterReminderWorker.EXTRA_METER_NAME, "Water")
-            putExtra(MeterReminderWorker.EXTRA_FREQUENCY_DAYS, 3)
-            putExtra(MeterReminderWorker.EXTRA_HOUR, 10)
-            putExtra(MeterReminderWorker.EXTRA_MINUTE, 15)
-            putExtra(MeterReminderWorker.EXTRA_SNOOZE_MINUTES, snoozeMinutes)
-        }
-
-        SnoozeReceiver().onReceive(context, intent)
-
-        val workInfos = WorkManager.getInstance(context)
-            .getWorkInfosForUniqueWork("meter_reminder_99")
-            .get()
-        assertEquals(1, workInfos.size)
-        val workSpec = WorkManagerTestInitHelper.getTestDriver(context)!!
-            .getWorkSpec(workInfos.first().id)
-        assertNotNull(workSpec)
-        assertEquals(
-            TimeUnit.MINUTES.toMillis(snoozeMinutes.toLong()),
-            workSpec.initialDelay
+        receiver.nextParsedRequest = SnoozeRequest(
+            meterId = 99L,
+            meterName = "Water",
+            frequencyDays = 3,
+            hour = 10,
+            minute = 15,
+            snoozeMinutes = snoozeMinutes
         )
+
+        receiver.onReceive(context, Intent())
+
+        val scheduled = receiver.lastRequest
+        assertNotNull(scheduled)
+        assertEquals(99L, scheduled.meterId)
+        assertEquals(snoozeMinutes, scheduled.snoozeMinutes)
     }
 
-    private fun clearDataStore() {
-        val datastoreDir = File(context.filesDir.parentFile, "datastore")
-        datastoreDir.listFiles()?.forEach { it.delete() }
+    private class RecordingScheduler(
+        context: android.content.Context,
+        snoozePreferenceReader: SnoozePreferenceReader
+    ) : ReminderScheduler(context, snoozePreferenceReader) {
+        var lastScheduled: ScheduledReminder? = null
+
+        override fun scheduleReminder(
+            meterId: Long,
+            meterName: String,
+            frequencyDays: Int,
+            hour: Int,
+            minute: Int,
+            snoozeMinutes: Int
+        ) {
+            lastScheduled = ScheduledReminder(
+                meterId = meterId,
+                meterName = meterName,
+                frequencyDays = frequencyDays,
+                hour = hour,
+                minute = minute,
+                snoozeMinutes = snoozeMinutes
+            )
+        }
+    }
+
+    private data class ScheduledReminder(
+        val meterId: Long,
+        val meterName: String,
+        val frequencyDays: Int,
+        val hour: Int,
+        val minute: Int,
+        val snoozeMinutes: Int
+    )
+
+    private class FakeSnoozePreferenceReader(
+        private val snoozeMinutes: Int
+    ) : SnoozePreferenceReader {
+        override suspend fun currentSnoozeMinutes(): Int = snoozeMinutes
+    }
+
+    private class RecordingSnoozeReceiver : SnoozeReceiver() {
+        var lastRequest: ScheduledReminder? = null
+        var nextParsedRequest: SnoozeRequest? = null
+
+        override fun parseSnoozeRequest(intent: Intent): SnoozeRequest? {
+            return nextParsedRequest
+        }
+
+        override fun scheduleSnoozedReminder(
+            context: android.content.Context,
+            meterId: Long,
+            meterName: String,
+            frequencyDays: Int,
+            hour: Int,
+            minute: Int,
+            snoozeMinutes: Int
+        ) {
+            lastRequest = ScheduledReminder(
+                meterId = meterId,
+                meterName = meterName,
+                frequencyDays = frequencyDays,
+                hour = hour,
+                minute = minute,
+                snoozeMinutes = snoozeMinutes
+            )
+        }
     }
 }

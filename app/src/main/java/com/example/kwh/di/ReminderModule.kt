@@ -2,7 +2,7 @@ package com.example.kwh.di
 
 import android.content.Context
 import com.example.kwh.reminders.ReminderScheduler
-import com.example.kwh.settings.SettingsRepository
+import com.example.kwh.settings.SnoozePreferenceReader
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,8 +18,8 @@ object ReminderModule {
     @Singleton
     fun provideReminderScheduler(
         @ApplicationContext context: Context,
-        settingsRepository: SettingsRepository
+        snoozePreferenceReader: SnoozePreferenceReader
     ): ReminderScheduler {
-        return ReminderScheduler(context, settingsRepository)
+        return ReminderScheduler(context, snoozePreferenceReader)
     }
 }
