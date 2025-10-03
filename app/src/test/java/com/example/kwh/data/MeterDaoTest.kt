@@ -42,7 +42,7 @@ class MeterDaoTest {
 
         val meters = dao.observeMetersWithReadings().first()
         assertEquals(1, meters.size)
-        val latest = meters.single().readings.firstOrNull()
+        val latest = meters.single().readings.maxByOrNull { it.recordedAt }
         assertNotNull(latest)
         assertEquals(121.0, latest.value, 0.0)
     }
