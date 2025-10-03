@@ -1,41 +1,23 @@
 package com.example.kwh.data
 
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import java.io.IOException
+import com.example.kwh.testing.FakeMeterDao
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
 class MeterDaoTest {
 
-    private lateinit var database: MeterDatabase
-    private lateinit var dao: MeterDao
+    private lateinit var dao: FakeMeterDao
 
     @Before
     fun setUp() {
-        database = androidx.room.Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MeterDatabase::class.java
-        ).allowMainThreadQueries().build()
-        dao = database.meterDao()
-    }
-
-    @After
-    @Throws(IOException::class)
-    fun tearDown() {
-        database.close()
+        dao = FakeMeterDao()
     }
 
     @Test

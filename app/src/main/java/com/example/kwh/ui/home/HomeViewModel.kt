@@ -1,14 +1,13 @@
 package com.example.kwh.ui.home
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kwh.R
 import com.example.kwh.data.MeterWithLatestReading
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
+import com.example.kwh.ui.common.StringResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import java.time.Instant
 import kotlinx.coroutines.channels.Channel
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: MeterRepository,
     private val reminderScheduler: ReminderScheduler,
-    @ApplicationContext private val context: Context
+    private val stringResolver: StringResolver
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -56,7 +55,7 @@ class HomeViewModel @Inject constructor(
     fun addMeter(name: String, reminderFrequencyDays: Int, hour: Int, minute: Int) {
         val sanitizedName = name.trim()
         if (sanitizedName.isBlank()) {
-            emitError(context.getString(R.string.error_meter_name_blank))
+            emitError(stringResolver.get(R.string.error_meter_name_blank))
             return
         }
         val frequency = reminderFrequencyDays.coerceAtLeast(1)
@@ -72,7 +71,7 @@ class HomeViewModel @Inject constructor(
 
     fun addReading(meterId: Long, value: Double, notes: String?) {
         if (value.isNaN() || value <= 0.0) {
-            emitError(context.getString(R.string.error_positive_reading))
+            emitError(stringResolver.get(R.string.error_positive_reading))
             return
         }
         viewModelScope.launch {
@@ -132,10 +131,10 @@ class HomeViewModel @Inject constructor(
                 if (deleted) {
                     reminderScheduler.disableReminder(meterId)
                 } else {
-                    emitError(context.getString(R.string.error_deleting_meter))
+                    emitError(stringResolver.get(R.string.error_deleting_meter))
                 }
             }.onFailure { throwable ->
-                emitError(throwable.message ?: context.getString(R.string.error_deleting_meter))
+                emitError(throwable.message ?: stringResolver.get(R.string.error_deleting_meter))
             }
         }
     }

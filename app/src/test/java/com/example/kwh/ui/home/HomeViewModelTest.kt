@@ -1,50 +1,43 @@
 package com.example.kwh.ui.home
 
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.kwh.data.MeterDatabase
-import com.example.kwh.reminders.ReminderScheduler
+import android.app.Application
+import com.example.kwh.data.MeterEntity
 import com.example.kwh.repository.MeterRepository
-import com.example.kwh.settings.SettingsRepository
+import com.example.kwh.reminders.ReminderScheduler
+import com.example.kwh.settings.SnoozePreferenceReader
+import com.example.kwh.testing.FakeMeterDao
+import com.example.kwh.testing.MainDispatcherRule
+import com.example.kwh.ui.common.StringResolver
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
 class HomeViewModelTest {
 
-    private lateinit var database: MeterDatabase
+    @get:Rule
+    val dispatcherRule = MainDispatcherRule()
+
     private lateinit var repository: MeterRepository
     private lateinit var scheduler: RecordingScheduler
     private lateinit var viewModel: HomeViewModel
 
     @Before
     fun setup() {
-        database = androidx.room.Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MeterDatabase::class.java
-        ).allowMainThreadQueries().build()
-        repository = MeterRepository(database.meterDao())
-        scheduler = RecordingScheduler(
-            ApplicationProvider.getApplicationContext(),
-            SettingsRepository(ApplicationProvider.getApplicationContext())
+        val dao = FakeMeterDao()
+        repository = MeterRepository(dao)
+        scheduler = RecordingScheduler(Application(), FakeSnoozePreferenceReader())
+        viewModel = HomeViewModel(
+            repository = repository,
+            reminderScheduler = scheduler,
+            stringResolver = FakeStringResolver()
         )
-        viewModel = HomeViewModel(repository, scheduler)
-    }
-
-    @After
-    fun tearDown() {
-        database.close()
     }
 
     @Test
@@ -76,17 +69,28 @@ class HomeViewModelTest {
 
     private class RecordingScheduler(
         context: android.content.Context,
-        settingsRepository: SettingsRepository
-    ) : ReminderScheduler(context, settingsRepository) {
+        snoozePreferenceReader: SnoozePreferenceReader
+    ) : ReminderScheduler(
+        context = context,
+        snoozePreferenceReader = snoozePreferenceReader
+    ) {
         val enabledMeters = mutableListOf<Long>()
         val disabledMeters = mutableListOf<Long>()
 
-        override fun enableReminder(meter: com.example.kwh.data.MeterEntity) {
+        override fun enableReminder(meter: MeterEntity) {
             enabledMeters.add(meter.id)
         }
 
         override fun disableReminder(meterId: Long) {
             disabledMeters.add(meterId)
         }
+    }
+
+    private class FakeSnoozePreferenceReader : SnoozePreferenceReader {
+        override suspend fun currentSnoozeMinutes(): Int = 60
+    }
+
+    private class FakeStringResolver : StringResolver {
+        override fun get(id: Int, vararg formatArgs: Any): String = id.toString()
     }
 }

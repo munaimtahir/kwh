@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.map
  */
 class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : SnoozePreferenceReader {
     /** Flow of the current user settings. Collecting this will emit updates whenever
      * preferences change.
      */
@@ -34,6 +35,10 @@ class SettingsRepository @Inject constructor(
     /** Persist the snooze duration in minutes. */
     suspend fun setSnoozeMinutes(minutes: Int) {
         context.dataStore.edit { it[PreferencesKeys.SNOOZE_MINUTES] = minutes }
+    }
+
+    override suspend fun currentSnoozeMinutes(): Int {
+        return settings.first().snoozeMinutes
     }
 
     private object PreferencesKeys {
@@ -57,3 +62,11 @@ data class UserSettings(
 
 // Define an extension property for DataStore. This must live at the top level.
 private val Context.dataStore by preferencesDataStore(name = "settings")
+
+/**
+ * Exposes the ability to read the current snooze preference. Extracted as an interface so
+ * production code can depend on it while tests provide lightweight fakes.
+ */
+interface SnoozePreferenceReader {
+    suspend fun currentSnoozeMinutes(): Int
+}

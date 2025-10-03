@@ -2,6 +2,7 @@ package com.example.kwh.di
 
 import android.content.Context
 import com.example.kwh.settings.SettingsRepository
+import com.example.kwh.settings.SnoozePreferenceReader
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,5 +21,13 @@ object SettingsModule {
     @Singleton
     fun provideSettingsRepository(@ApplicationContext context: Context): SettingsRepository {
         return SettingsRepository(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSnoozePreferenceReader(
+        repository: SettingsRepository
+    ): SnoozePreferenceReader {
+        return repository
     }
 }
