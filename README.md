@@ -7,6 +7,7 @@ An Android application for logging electricity meter readings and scheduling rem
 - Manage multiple meters with individual reminder preferences.
 - Log readings with optional notes and automatic timestamping.
 - Browse full history per meter with 7/30/90 day filters, trend chart, and CSV export/import.
+- Monitor billing cycle insights with baseline/latest readings, usage projections, and threshold forecasts.
 - Delete meters or readings with undo support.
 - Snooze reminders directly from notifications.
 - Personalize dark theme and snooze length from the Settings screen.

@@ -19,6 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.kwh.ui.app.KwhTheme
+import com.example.kwh.settings.SettingsScreen
+import com.example.kwh.settings.SettingsViewModel
 import com.example.kwh.ui.home.HomeEvent
 import com.example.kwh.ui.home.HomeScreen
 import com.example.kwh.ui.home.HomeViewModel
@@ -114,7 +116,7 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("meterSettings/$meterId")
                             },
                             onOpenAppSettings = {
-                                // App-wide settings screen not implemented yet
+                                navController.navigate("settings")
                             }
                         )
                     }
@@ -135,6 +137,16 @@ class MainActivity : ComponentActivity() {
                         val meterSettingsViewModel: MeterSettingsViewModel = hiltViewModel()
                         MeterSettingsScreen(
                             viewModel = meterSettingsViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("settings") {
+                        val settingsViewModel: SettingsViewModel = hiltViewModel()
+                        val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+                        SettingsScreen(
+                            state = settingsState,
+                            onDarkThemeChanged = settingsViewModel::setDarkTheme,
+                            onSnoozeChanged = settingsViewModel::setSnoozeMinutes,
                             onBack = { navController.popBackStack() }
                         )
                     }
