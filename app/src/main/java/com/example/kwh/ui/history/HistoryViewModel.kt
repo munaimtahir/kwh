@@ -36,6 +36,14 @@ class HistoryViewModel @Inject constructor(
     private val meterId: Long = savedStateHandle.get<Long>("meterId")
         ?: throw IllegalStateException("Missing meterId argument")
 
+    companion object {
+        /**
+         * CSV format version. Increment this constant when the CSV structure changes
+         * to support backward compatibility in future imports.
+         */
+        private const val CSV_FORMAT_VERSION = 1
+    }
+
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
@@ -160,6 +168,7 @@ class HistoryViewModel @Inject constructor(
      * values: `timestamp,value,notes`. Lines that cannot be parsed are ignored. Emits
      * [HistoryEvent.Imported] with the number of imported rows on success or [HistoryEvent.Error]
      * on failure.
+     * Supports CSV format version [CSV_FORMAT_VERSION].
      */
     fun importFromCsv(csv: String) {
         viewModelScope.launch {
@@ -249,6 +258,7 @@ class HistoryViewModel @Inject constructor(
 
     /**
      * Convert a list of readings into a CSV string. The first line is a header.
+     * Uses CSV format version [CSV_FORMAT_VERSION].
      */
     private fun buildCsv(readings: List<HistoryReading>): String {
         val builder = StringBuilder()
