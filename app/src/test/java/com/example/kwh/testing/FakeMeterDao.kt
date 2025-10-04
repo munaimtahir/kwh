@@ -34,6 +34,32 @@ class FakeMeterDao : MeterDao {
         return readings.find { it.id == readingId }
     }
 
+    override suspend fun getLatestReadingBefore(meterId: Long, start: Long): MeterReadingEntity? {
+        return readings
+            .filter { it.meterId == meterId && it.recordedAt < start }
+            .maxByOrNull { it.recordedAt }
+    }
+
+    override suspend fun getEarliestReadingInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity? {
+        return readings
+            .filter { it.meterId == meterId && it.recordedAt in start until end }
+            .minByOrNull { it.recordedAt }
+    }
+
+    override suspend fun getLatestReadingInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity? {
+        return readings
+            .filter { it.meterId == meterId && it.recordedAt in start until end }
+            .maxByOrNull { it.recordedAt }
+    }
+
     override suspend fun insertMeter(meter: MeterEntity): Long {
         val assignedId = if (meter.id == 0L) nextMeterId++ else meter.id
         val entity = meter.copy(id = assignedId)

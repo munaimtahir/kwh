@@ -50,6 +50,9 @@ class HistoryViewModel @Inject constructor(
     // Cache the most recently deleted reading for undo support
     private var recentlyDeleted: MeterReadingEntity? = null
 
+    private var billingAnchorDay: Int = 1
+    private var thresholdsCsv: String = "200,300"
+
     init {
         viewModelScope.launch {
             repository.meterOverview(meterId).collect { overview ->
@@ -167,6 +170,8 @@ class HistoryViewModel @Inject constructor(
                 val newReadings = mutableListOf<MeterReadingEntity>()
                 val reader = BufferedReader(StringReader(csv))
                 reader.readLine() // skip header if present
+                var importedAnchor = 1
+                var importedThresholds = "200,300"
                 while (true) {
                     val line = reader.readLine() ?: break
                     val parts = line.split(',')
@@ -174,6 +179,17 @@ class HistoryViewModel @Inject constructor(
                     val timestamp = parts[0].toLongOrNull()
                     val value = parts[1].toDoubleOrNull()
                     val notes = parts.getOrNull(2)?.takeIf { it.isNotBlank() }
+                    parts.getOrNull(3)?.toIntOrNull()?.let { anchor ->
+                        if (anchor in 1..31) {
+                            importedAnchor = anchor
+                        }
+                    }
+                    parts.getOrNull(4)?.let { thresholds ->
+                        val trimmed = thresholds.trim()
+                        if (trimmed.isNotEmpty()) {
+                            importedThresholds = trimmed
+                        }
+                    }
                     if (timestamp != null && value != null && value > 0.0) {
                         newReadings += MeterReadingEntity(
                             id = 0L,
@@ -189,6 +205,15 @@ class HistoryViewModel @Inject constructor(
                     return@launch
                 }
                 repository.restoreReadings(newReadings)
+                repository.getMeter(meterId)?.let { meter ->
+                    val updated = meter.copy(
+                        billingAnchorDay = importedAnchor,
+                        thresholdsCsv = importedThresholds
+                    )
+                    repository.updateMeter(updated)
+                    billingAnchorDay = updated.billingAnchorDay
+                    thresholdsCsv = updated.thresholdsCsv
+                }
                 _events.send(HistoryEvent.Imported(newReadings.size))
             } catch (e: Exception) {
                 _events.send(HistoryEvent.Error("Failed to import CSV"))
@@ -252,13 +277,18 @@ class HistoryViewModel @Inject constructor(
      */
     private fun buildCsv(readings: List<HistoryReading>): String {
         val builder = StringBuilder()
-        builder.append("timestamp,value,notes\n")
+        builder.append("# version: 1\n")
+        builder.append("timestamp,value,notes,billing_anchor_day,thresholds\n")
         readings.forEach { reading ->
             builder.append(reading.recordedAt.toEpochMilli())
                 .append(',')
                 .append(reading.value)
                 .append(',')
                 .append(reading.notes ?: "")
+                .append(',')
+                .append(billingAnchorDay)
+                .append(',')
+                .append(thresholdsCsv)
                 .append('\n')
         }
         return builder.toString()
