@@ -1,8 +1,10 @@
 package com.example.kwh.di
 
 import com.example.kwh.billing.BillingCycleCalculator
+import com.example.kwh.billing.DefaultBillingCycleCalculator
 import com.example.kwh.data.MeterDao
 import com.example.kwh.repository.MeterRepository
+import java.time.Clock
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,11 +18,19 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideClock(): Clock = Clock.systemDefaultZone()
+
+    @Provides
+    @Singleton
+    fun provideBillingCycleCalculator(): BillingCycleCalculator = DefaultBillingCycleCalculator()
+
+    @Provides
+    @Singleton
     fun provideMeterRepository(
         meterDao: MeterDao,
-        billingCycleCalculator: BillingCycleCalculator,
-        clock: Clock
+        clock: Clock,
+        billingCycleCalculator: BillingCycleCalculator
     ): MeterRepository {
-        return MeterRepository(meterDao, billingCycleCalculator, clock)
+        return MeterRepository(meterDao, clock, billingCycleCalculator)
     }
 }

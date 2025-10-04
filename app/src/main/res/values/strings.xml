@@ -22,6 +22,12 @@
     <string name="no_readings_yet">No readings yet</string>
     <string name="empty_state_hint">Tap the + button to add your first meter.</string>
     <string name="next_reminder">Next reminder: %1$s</string>
+    <string name="cycle_range">Cycle %1$s–%2$s</string>
+    <string name="cycle_used_chip">Used: %1$s kWh</string>
+    <string name="cycle_projected_chip">Projected: %1$s kWh</string>
+    <string name="next_threshold_eta">Next threshold %1$d ~ %2$s</string>
+    <string name="value_placeholder">--</string>
+    <string name="settings_action">Settings</string>
     <string name="meter_name_error">Please enter a name for the meter</string>
     <string name="reading_value_error">Please enter a positive reading</string>
     <string name="error_meter_name_blank">Meter name cannot be blank</string>
@@ -48,6 +54,13 @@
     <string name="undo">Undo</string>
     <string name="reading_deleted">Reading deleted</string>
     <string name="meter_deleted">Meter deleted</string>
+    <string name="history_cycle_range">Cycle %1$s–%2$s</string>
+    <string name="history_baseline">Baseline: %1$.2f kWh · %2$s</string>
+    <string name="history_latest">Latest: %1$.2f kWh · %2$s</string>
+    <string name="history_used">Used: %1$.2f kWh</string>
+    <string name="history_projected">Projected: %1$.2f kWh</string>
+    <string name="history_rate">Rate: %1$.2f kWh/day</string>
+    <string name="history_next_threshold">Next threshold %1$d ~ %2$s</string>
 
     <!-- Reminder notification strings -->
     <string name="reminder_notification_title">Time to log your meter reading</string>
@@ -67,4 +80,15 @@
     <string name="settings_dark_mode_desc">Use a dark color scheme</string>
     <string name="settings_snooze_title">Snooze duration</string>
     <string name="settings_snooze_summary">Snooze for %1$d minutes</string>
+
+    <!-- Meter settings -->
+    <string name="meter_settings_title">Meter settings</string>
+    <string name="meter_settings_anchor_label">Billing anchor day</string>
+    <string name="meter_settings_thresholds_label">Thresholds (comma separated)</string>
+    <string name="meter_settings_frequency_label">Reminder frequency (days)</string>
+    <string name="meter_settings_saved">Meter settings saved</string>
+    <string name="meter_settings_invalid_thresholds">Enter thresholds as comma-separated numbers</string>
+    <string name="meter_settings_anchor_error">Anchor day must be between 1 and 31</string>
+    <string name="meter_settings_frequency_error">Reminder frequency must be at least 1 day</string>
+    <string name="meter_settings_save_error">Unable to save meter settings</string>
 </resources>

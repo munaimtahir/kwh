@@ -64,4 +64,30 @@ interface MeterDao {
 
     @Query("DELETE FROM meter_readings WHERE id = :readingId")
     suspend fun deleteReadingById(readingId: Long)
+
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at < :start " +
+            "ORDER BY recorded_at DESC LIMIT 1"
+    )
+    suspend fun latestBefore(meterId: Long, start: Long): MeterReadingEntity?
+
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at >= :start " +
+            "AND recorded_at < :end ORDER BY recorded_at ASC LIMIT 1"
+    )
+    suspend fun earliestInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity?
+
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at >= :start " +
+            "AND recorded_at < :end ORDER BY recorded_at DESC LIMIT 1"
+    )
+    suspend fun latestInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity?
 }

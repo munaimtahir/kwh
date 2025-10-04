@@ -3,13 +3,14 @@ package com.example.kwh.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kwh.R
-import com.example.kwh.data.MeterWithLatestReading
+import com.example.kwh.repository.MeterOverview
 import com.example.kwh.reminders.ReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.ui.common.StringResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +34,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.metersWithLatestReading.collectLatest { meters ->
+            repository.meterOverviews.collectLatest { meters ->
                 _uiState.value = _uiState.value.copy(
                     meters = meters.map { it.toMeterItem() }
                 )
@@ -139,7 +140,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun MeterWithLatestReading.toMeterItem(): MeterItem {
+    private fun MeterOverview.toMeterItem(): MeterItem {
+        val stats = cycleStats
+        val hasProjection = stats.baseline != null && stats.latest != null
+        val threshold = stats.nextThreshold
         return MeterItem(
             id = meter.id,
             name = meter.name,
@@ -160,7 +164,17 @@ class HomeViewModel @Inject constructor(
                     .toInstant()
             } else {
                 null
-            }
+            },
+            cycle = CycleUiModel(
+                start = stats.window.start,
+                end = stats.window.end,
+                usedUnits = stats.usedUnits,
+                projectedUnits = stats.projectedUnits,
+                ratePerDay = stats.ratePerDay,
+                hasProjection = hasProjection,
+                nextThresholdValue = threshold?.threshold,
+                nextThresholdDate = threshold?.eta
+            )
         )
     }
 
@@ -186,7 +200,8 @@ data class MeterItem(
     val reminderHour: Int,
     val reminderMinute: Int,
     val latestReading: MeterReading?,
-    val nextReminder: Instant?
+    val nextReminder: Instant?,
+    val cycle: CycleUiModel
 )
 
 data class MeterReading(
@@ -199,3 +214,14 @@ sealed interface HomeEvent {
     data class ShowMessage(val message: String) : HomeEvent
     data class Error(val message: String) : HomeEvent
 }
+
+data class CycleUiModel(
+    val start: Instant,
+    val end: Instant,
+    val usedUnits: Double,
+    val projectedUnits: Double,
+    val ratePerDay: Double,
+    val hasProjection: Boolean,
+    val nextThresholdValue: Int?,
+    val nextThresholdDate: LocalDate?
+)
