@@ -277,6 +277,7 @@ class HistoryViewModel @Inject constructor(
      */
     private fun buildCsv(readings: List<HistoryReading>): String {
         val builder = StringBuilder()
+        builder.append("# version: 1\n")
         builder.append("timestamp,value,notes,billing_anchor_day,thresholds\n")
         readings.forEach { reading ->
             builder.append(reading.recordedAt.toEpochMilli())
