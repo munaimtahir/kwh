@@ -290,56 +290,63 @@ private fun CycleSummaryCard(summary: CycleSummary) {
     val thresholdFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
     val startText = remember(summary.start) { rangeFormatter.format(summary.start.atZone(ZoneId.systemDefault())) }
     val endText = remember(summary.end) { rangeFormatter.format(summary.end.atZone(ZoneId.systemDefault())) }
-    SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = stringResource(id = R.string.history_cycle_range, startText, endText), style = MaterialTheme.typography.titleSmall)
-            summary.baseline?.let {
-                val baselineDate = remember(it.recordedAt) {
-                    dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
-                }
-                Text(
-                    text = stringResource(
-                        id = R.string.history_baseline,
-                        it.value,
-                        baselineDate
-                    ),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            summary.latest?.let {
-                val latestDate = remember(it.recordedAt) {
-                    dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
-                }
-                Text(
-                    text = stringResource(
-                        id = R.string.history_latest,
-                        it.value,
-                        latestDate
-                    ),
-                    style = MaterialTheme.typography.bodySmall
-                )
+    SectionCard(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = stringResource(id = R.string.history_cycle_range, startText, endText),
+            style = MaterialTheme.typography.titleMedium
+        )
+        summary.baseline?.let {
+            val baselineDate = remember(it.recordedAt) {
+                dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
             }
             Text(
-                text = stringResource(id = R.string.history_used, summary.usedUnits),
-                style = MaterialTheme.typography.bodyMedium
+                text = stringResource(
+                    id = R.string.history_baseline,
+                    it.value,
+                    baselineDate
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = stringResource(id = R.string.history_projected, summary.projectedUnits),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = stringResource(id = R.string.history_rate, summary.ratePerDay),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            if (summary.nextThresholdValue != null && summary.nextThresholdDate != null) {
-                val etaText = remember(summary.nextThresholdDate) {
-                    thresholdFormatter.format(summary.nextThresholdDate)
-                }
-                Text(
-                    text = stringResource(id = R.string.history_next_threshold, summary.nextThresholdValue, etaText),
-                    style = MaterialTheme.typography.bodySmall
-                )
+        }
+        summary.latest?.let {
+            val latestDate = remember(it.recordedAt) {
+                dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
             }
+            Text(
+                text = stringResource(
+                    id = R.string.history_latest,
+                    it.value,
+                    latestDate
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = stringResource(id = R.string.history_used, summary.usedUnits),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = stringResource(id = R.string.history_projected, summary.projectedUnits),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = stringResource(id = R.string.history_rate, summary.ratePerDay),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        if (summary.nextThresholdValue != null && summary.nextThresholdDate != null) {
+            val etaText = remember(summary.nextThresholdDate) {
+                thresholdFormatter.format(summary.nextThresholdDate)
+            }
+            Text(
+                text = stringResource(id = R.string.history_next_threshold, summary.nextThresholdValue, etaText),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

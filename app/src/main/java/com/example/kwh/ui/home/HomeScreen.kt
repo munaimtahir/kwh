@@ -1,6 +1,9 @@
 package com.example.kwh.ui.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,15 +13,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DataUsage
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,10 +47,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Surface
+import androidx.compose.material3.surfaceColorAtElevation
 import com.example.kwh.R
 import com.example.kwh.ui.components.NumberField
 import com.example.kwh.ui.components.PrimaryButton
@@ -91,22 +105,56 @@ fun HomeScreen(
         }
     ) { padding ->
         if (uiState.meters.isEmpty()) {
-            Column(
+            Box(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = stringResource(id = R.string.no_readings_yet),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(id = R.string.empty_state_hint),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                val colorScheme = MaterialTheme.colorScheme
+                val gradient = remember(colorScheme.primary, colorScheme.tertiary, colorScheme.surface) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            colorScheme.primary.copy(alpha = 0.18f),
+                            colorScheme.tertiary.copy(alpha = 0.12f),
+                            colorScheme.surface
+                        )
+                    )
+                }
+                Surface(
+                    modifier = Modifier
+                        .padding(horizontal = 32.dp)
+                        .fillMaxWidth(),
+                    tonalElevation = 8.dp,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = colorScheme.surfaceColorAtElevation(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .background(gradient)
+                            .padding(horizontal = 32.dp, vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Lightbulb,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = stringResource(id = R.string.no_readings_yet),
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(id = R.string.empty_state_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         } else {
             LazyColumn(
@@ -114,7 +162,7 @@ fun HomeScreen(
                     .padding(padding)
                     .fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 items(uiState.meters, key = { it.id }) { meter ->
                     MeterCard(
@@ -166,133 +214,130 @@ private fun MeterCard(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     SectionCard {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = meter.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    meter.nextReminder?.let { instant ->
-                        val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
-                        Text(
-                            text = stringResource(id = R.string.next_reminder, formatter.format(instant.atZone(ZoneId.systemDefault()))),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(id = R.string.delete_meter)
-                    )
-                }
-            }
-            val cycle = meter.cycle
-            val cycleFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
-            val startText = remember(cycle.start) { cycleFormatter.format(cycle.start.atZone(ZoneId.systemDefault())) }
-            val endText = remember(cycle.end) { cycleFormatter.format(cycle.end.atZone(ZoneId.systemDefault())) }
-            Text(
-                text = stringResource(id = R.string.cycle_range, startText, endText),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatChip(text = stringResource(id = R.string.cycle_used_chip, formatUnits(cycle.usedUnits)))
-                val projected = if (cycle.hasProjection) {
-                    formatUnits(cycle.projectedUnits)
-                } else {
-                    stringResource(id = R.string.value_placeholder)
-                }
-                StatChip(text = stringResource(id = R.string.cycle_projected_chip, projected))
-            }
-            cycle.nextThresholdValue?.let { thresholdValue ->
-                val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
-                cycle.nextThresholdDate?.let { eta ->
-                    Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = meter.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                meter.nextReminder?.let { instant ->
+                    val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
                     Text(
                         text = stringResource(
-                            id = R.string.next_threshold_eta,
-                            thresholdValue,
-                            dateFormatter.format(eta)
+                            id = R.string.next_reminder,
+                            formatter.format(instant.atZone(ZoneId.systemDefault()))
                         ),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            meter.latestReading?.let { reading ->
-                val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
-                val formatted = remember(reading.recordedAt) {
-                    formatter.format(reading.recordedAt.atZone(ZoneId.systemDefault()))
-                }
-                Text(
-                    text = stringResource(id = R.string.last_recorded_value, reading.value),
-                    style = MaterialTheme.typography.bodyMedium
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = stringResource(id = R.string.delete_meter)
                 )
-                Text(
-                    text = formatted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                reading.notes?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall)
-                }
-            } ?: Text(
-                text = stringResource(id = R.string.no_readings_yet),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PrimaryButton(
-                    text = stringResource(id = R.string.add_reading),
-                    onClick = onAddReadingClick,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = onViewHistory) {
-                    Icon(imageVector = Icons.Filled.History, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = stringResource(id = R.string.view_history))
-                }
-                TextButton(onClick = onOpenSettings) {
-                    Icon(imageVector = Icons.Filled.Settings, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = stringResource(id = R.string.settings_action))
-                }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            ReminderSettings(
-                meter = meter,
+        }
+
+        val cycle = meter.cycle
+        val cycleFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+        val startText = remember(cycle.start) { cycleFormatter.format(cycle.start.atZone(ZoneId.systemDefault())) }
+        val endText = remember(cycle.end) { cycleFormatter.format(cycle.end.atZone(ZoneId.systemDefault())) }
+        Text(
+            text = stringResource(id = R.string.cycle_range, startText, endText),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatChip(
+                text = stringResource(id = R.string.cycle_used_chip, formatUnits(cycle.usedUnits)),
+                icon = Icons.Filled.DataUsage
+            )
+            val projected = if (cycle.hasProjection) {
+                formatUnits(cycle.projectedUnits)
+            } else {
+                stringResource(id = R.string.value_placeholder)
+            }
+            StatChip(
+                text = stringResource(id = R.string.cycle_projected_chip, projected),
+                icon = Icons.Filled.TrendingUp,
+                iconTint = MaterialTheme.colorScheme.tertiary
+            )
+        }
+        cycle.nextThresholdValue?.let { thresholdValue ->
+            val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+            cycle.nextThresholdDate?.let { eta ->
+                Text(
+                    text = stringResource(
+                        id = R.string.next_threshold_eta,
+                        thresholdValue,
+                        dateFormatter.format(eta)
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+
+        meter.latestReading?.let { reading ->
+            val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
+            val formatted = remember(reading.recordedAt) {
+                formatter.format(reading.recordedAt.atZone(ZoneId.systemDefault()))
+            }
+            Text(
+                text = stringResource(id = R.string.last_recorded_value, reading.value),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = formatted,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            reading.notes?.let {
+                Text(text = it, style = MaterialTheme.typography.bodyMedium)
+            }
+        } ?: Text(
+            text = stringResource(id = R.string.no_readings_yet),
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PrimaryButton(
+                text = stringResource(id = R.string.add_reading),
+                onClick = onAddReadingClick,
+                modifier = Modifier.weight(1f),
+                leadingIcon = Icons.Filled.Add,
+                iconContentDescription = stringResource(id = R.string.add_reading)
+            )
+            TextButton(onClick = onViewHistory) {
+                Icon(imageVector = Icons.Filled.History, contentDescription = null)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = stringResource(id = R.string.view_history))
+            }
+            TextButton(onClick = onOpenSettings) {
+                Icon(imageVector = Icons.Filled.Settings, contentDescription = null)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = stringResource(id = R.string.settings_action))
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+
+        ReminderSettings(
+            meter = meter,
             onReminderChanged = onReminderChanged
         )
     }
-}
-
-@Composable
-private fun StatChip(text: String) {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        shape = MaterialTheme.shapes.large
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        )
-    }
-}
-
-private fun formatUnits(value: Double): String {
-    return String.format(Locale.getDefault(), "%.1f", value)
-}
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -317,6 +362,34 @@ private fun formatUnits(value: Double): String {
 }
 
 @Composable
+private fun StatChip(
+    text: String,
+    icon: ImageVector,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = iconTint)
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+private fun formatUnits(value: Double): String {
+    return String.format(Locale.getDefault(), "%.1f", value)
+}
+
+@Composable
 private fun ReminderSettings(
     meter: MeterItem,
     onReminderChanged: (Boolean, Int, Int, Int) -> Unit
@@ -334,13 +407,23 @@ private fun ReminderSettings(
         mutableStateOf(meter.reminderMinute.toString())
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = stringResource(id = R.string.set_reminder))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(id = R.string.set_reminder),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(id = R.string.reminder_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Switch(
                 checked = reminderEnabled,
                 onCheckedChange = { enabled ->
@@ -392,7 +475,10 @@ private fun ReminderSettings(
                     fallback = meter,
                     onReminderChanged = onReminderChanged
                 )
-            }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = Icons.Filled.Check,
+            iconContentDescription = stringResource(id = R.string.save)
         )
     }
 }

@@ -7,6 +7,7 @@
     <string name="add_reading">Add reading</string>
     <string name="view_history">History</string>
     <string name="set_reminder">Set reminder</string>
+    <string name="reminder_description">Stay on schedule with reminders tailored to this meter.</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>
@@ -83,6 +84,7 @@
 
     <!-- Meter settings -->
     <string name="meter_settings_title">Meter settings</string>
+    <string name="meter_settings_description">Adjust billing anchors, thresholds, and reminders for this meter.</string>
     <string name="meter_settings_anchor_label">Billing anchor day</string>
     <string name="meter_settings_thresholds_label">Thresholds (comma separated)</string>
     <string name="meter_settings_frequency_label">Reminder frequency (days)</string>
