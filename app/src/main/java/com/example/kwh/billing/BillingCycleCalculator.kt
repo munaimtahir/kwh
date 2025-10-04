@@ -45,7 +45,7 @@ class DefaultBillingCycleCalculator : BillingCycleCalculator {
 
     private fun resolveCycleStart(today: LocalDate, anchorDay: Int): LocalDate {
         val anchorThisMonth = today.withDayOfMonth(anchorDay.coerceAtMost(today.lengthOfMonth()))
-        return if (!anchorThisMonth.isAfter(today)) {
+        return if (anchorThisMonth <= today) {
             anchorThisMonth
         } else {
             val previousMonth = today.minusMonths(1)
