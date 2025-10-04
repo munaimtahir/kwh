@@ -26,6 +26,8 @@ import com.example.kwh.ui.history.HistoryScreen
 import com.example.kwh.ui.history.HistoryViewModel
 import com.example.kwh.ui.metersettings.MeterSettingsScreen
 import com.example.kwh.ui.metersettings.MeterSettingsViewModel
+import com.example.kwh.settings.SettingsScreen
+import com.example.kwh.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -114,7 +116,7 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("meterSettings/$meterId")
                             },
                             onOpenAppSettings = {
-                                // App-wide settings screen not implemented yet
+                                navController.navigate("settings")
                             }
                         )
                     }
@@ -135,6 +137,15 @@ class MainActivity : ComponentActivity() {
                         val meterSettingsViewModel: MeterSettingsViewModel = hiltViewModel()
                         MeterSettingsScreen(
                             viewModel = meterSettingsViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("settings") {
+                        val settingsViewModel: SettingsViewModel = hiltViewModel()
+                        SettingsScreen(
+                            state = settingsViewModel.state.collectAsStateWithLifecycle().value,
+                            onDarkThemeChanged = { settingsViewModel.setDarkTheme(it) },
+                            onSnoozeChanged = { settingsViewModel.setSnoozeMinutes(it) },
                             onBack = { navController.popBackStack() }
                         )
                     }

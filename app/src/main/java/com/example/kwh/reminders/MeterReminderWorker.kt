@@ -138,15 +138,13 @@ class MeterReminderWorker(
         val today = LocalDate.now(zone)
         val messages = mutableListOf<String>()
 
-        val thresholdDate = stats.nextThresholdDate
-        val thresholdValue = stats.nextThreshold
-        if (thresholdDate != null && thresholdValue != null) {
-            val daysUntil = ChronoUnit.DAYS.between(today, thresholdDate)
+        stats.nextThreshold?.let { forecast ->
+            val daysUntil = ChronoUnit.DAYS.between(today, forecast.eta)
             if (daysUntil in 0 until THRESHOLD_WARNING_WINDOW_DAYS) {
-                val formattedDate = thresholdDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                val formattedDate = forecast.eta.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
                 messages += applicationContext.getString(
                     com.example.kwh.R.string.reminder_notification_threshold,
-                    thresholdValue,
+                    forecast.threshold,
                     formattedDate
                 )
             }
