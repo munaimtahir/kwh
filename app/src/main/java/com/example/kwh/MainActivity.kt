@@ -24,6 +24,8 @@ import com.example.kwh.ui.home.HomeScreen
 import com.example.kwh.ui.home.HomeViewModel
 import com.example.kwh.ui.history.HistoryScreen
 import com.example.kwh.ui.history.HistoryViewModel
+import com.example.kwh.ui.metersettings.MeterSettingsScreen
+import com.example.kwh.ui.metersettings.MeterSettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -108,8 +110,11 @@ class MainActivity : ComponentActivity() {
                             onDeleteMeter = { meterId ->
                                 homeViewModel.deleteMeter(meterId)
                             },
-                            onOpenSettings = {
-                                // Settings screen not implemented
+                            onOpenMeterSettings = { meterId ->
+                                navController.navigate("meterSettings/$meterId")
+                            },
+                            onOpenAppSettings = {
+                                // App-wide settings screen not implemented yet
                             }
                         )
                     }
@@ -120,6 +125,16 @@ class MainActivity : ComponentActivity() {
                         val historyViewModel: HistoryViewModel = hiltViewModel()
                         HistoryScreen(
                             viewModel = historyViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = "meterSettings/{meterId}",
+                        arguments = listOf(navArgument("meterId") { type = NavType.LongType })
+                    ) {
+                        val meterSettingsViewModel: MeterSettingsViewModel = hiltViewModel()
+                        MeterSettingsScreen(
+                            viewModel = meterSettingsViewModel,
                             onBack = { navController.popBackStack() }
                         )
                     }

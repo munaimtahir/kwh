@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kwh.data.MeterReadingEntity
+import com.example.kwh.billing.CycleStats
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.reminders.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,17 +45,26 @@ class HistoryViewModel @Inject constructor(
     // All readings loaded from the database, unfiltered. Used to recompute when filter changes.
     private var allReadings: List<HistoryReading> = emptyList()
 
+    private var currentCycleStats: CycleStats? = null
+
     // Cache the most recently deleted reading for undo support
     private var recentlyDeleted: MeterReadingEntity? = null
 
     init {
-        // Load the meter name and readings
         viewModelScope.launch {
-            // Fetch meter to get its name
-            repository.getMeter(meterId)?.let { meter ->
-                _uiState.value = _uiState.value.copy(meterName = meter.name)
+            repository.meterOverview(meterId).collect { overview ->
+                if (overview != null) {
+                    currentCycleStats = overview.cycleStats
+                    _uiState.value = _uiState.value.copy(
+                        meterName = overview.meter.name,
+                        cycle = overview.cycleStats.toCycleSummary()
+                    )
+                    applyFilterAndUpdate()
+                }
             }
-            // Collect readings for this meter. When they change the UI state is updated.
+        }
+
+        viewModelScope.launch {
             repository.readingsForMeter(meterId).collect { entities ->
                 val readings = entities.map { entity ->
                     HistoryReading(
@@ -198,10 +208,42 @@ class HistoryViewModel @Inject constructor(
                 allReadings.filter { it.recordedAt >= cutoff }
             }
         }
-        val trendData = TrendChartData(points = filtered.map { TrendPoint(it.value) })
         _uiState.value = _uiState.value.copy(
             readings = filtered,
-            trend = trendData
+            trend = buildTrendData()
+        )
+    }
+
+    private fun buildTrendData(): TrendChartData {
+        val stats = currentCycleStats ?: return TrendChartData()
+        val windowStart = stats.window.start
+        val windowEnd = stats.window.end
+        val points = mutableListOf<TrendPoint>()
+        stats.baseline?.let { baseline ->
+            val baselineInstant = if (baseline.recordedAt.isBefore(windowStart)) windowStart else baseline.recordedAt
+            points += TrendPoint(instant = baselineInstant, value = baseline.value)
+        }
+        val readingsInWindow = allReadings
+            .filter { !it.recordedAt.isBefore(windowStart) && it.recordedAt.isBefore(windowEnd) }
+            .sortedBy { it.recordedAt }
+        readingsInWindow.forEach { reading ->
+            if (points.isEmpty() || points.last().instant != reading.recordedAt || points.last().value != reading.value) {
+                points += TrendPoint(instant = reading.recordedAt, value = reading.value)
+            }
+        }
+        val projection = if (stats.baseline != null && stats.latest != null) {
+            TrendProjection(
+                endInstant = windowEnd,
+                endValue = stats.baseline.value + stats.projectedUnits
+            )
+        } else {
+            null
+        }
+        return TrendChartData(
+            windowStart = windowStart,
+            windowEnd = windowEnd,
+            points = points,
+            projection = projection
         )
     }
 
@@ -230,8 +272,9 @@ data class HistoryUiState(
     val meterName: String = "",
     val readings: List<HistoryReading> = emptyList(),
     val filter: HistoryFilter = HistoryFilter.ALL,
-    val trend: TrendChartData = TrendChartData(emptyList()),
-    val showDeleteMeterDialog: Boolean = false
+    val trend: TrendChartData = TrendChartData(),
+    val showDeleteMeterDialog: Boolean = false,
+    val cycle: CycleSummary? = null
 ) {
     val isEmpty: Boolean get() = readings.isEmpty()
 }
@@ -262,12 +305,58 @@ enum class HistoryFilter(val days: Int?, val label: String) {
  * Data class containing points for the trend chart. Each point holds only a value; the
  * position on the X axis is determined by the order of the list.
  */
-data class TrendChartData(val points: List<TrendPoint>)
+data class TrendChartData(
+    val windowStart: Instant? = null,
+    val windowEnd: Instant? = null,
+    val points: List<TrendPoint> = emptyList(),
+    val projection: TrendProjection? = null
+)
 
-/**
- * A single point in the trend chart. Only the value is needed for drawing.
- */
-data class TrendPoint(val value: Double)
+data class TrendPoint(val instant: Instant, val value: Double)
+
+data class TrendProjection(val endInstant: Instant, val endValue: Double)
+
+data class CycleSummary(
+    val start: Instant,
+    val end: Instant,
+    val baseline: HistoryReading?,
+    val latest: HistoryReading?,
+    val usedUnits: Double,
+    val projectedUnits: Double,
+    val ratePerDay: Double,
+    val nextThresholdValue: Int?,
+    val nextThresholdDate: java.time.LocalDate?
+)
+
+private fun CycleStats.toCycleSummary(): CycleSummary {
+    val baselineReading = baseline?.let {
+        HistoryReading(
+            id = it.id,
+            value = it.value,
+            recordedAt = it.recordedAt,
+            notes = it.notes
+        )
+    }
+    val latestReading = latest?.let {
+        HistoryReading(
+            id = it.id,
+            value = it.value,
+            recordedAt = it.recordedAt,
+            notes = it.notes
+        )
+    }
+    return CycleSummary(
+        start = window.start,
+        end = window.end,
+        baseline = baselineReading,
+        latest = latestReading,
+        usedUnits = usedUnits,
+        projectedUnits = projectedUnits,
+        ratePerDay = ratePerDay,
+        nextThresholdValue = nextThreshold?.threshold,
+        nextThresholdDate = nextThreshold?.eta
+    )
+}
 
 /**
  * One-off events emitted by [HistoryViewModel] that are consumed by the UI. Events are
