@@ -1,5 +1,6 @@
 package com.example.kwh.billing
 
+import com.example.kwh.data.MeterReadingEntity
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -21,6 +22,16 @@ data class CycleWindow(val start: Instant, val end: Instant) {
 interface BillingCycleCalculator {
     fun currentWindow(anchorDay: Int, clock: Clock = Clock.systemDefaultZone()): CycleWindow
 }
+
+data class CycleStats(
+    val window: CycleWindow,
+    val baseline: MeterReadingEntity?,
+    val latest: MeterReadingEntity?,
+    val usedUnits: Double,
+    val projectedUnits: Double?,
+    val nextThreshold: Int?,
+    val nextThresholdDate: LocalDate?
+)
 
 /**
  * Default implementation of [BillingCycleCalculator]. It interprets the billing anchor day as the

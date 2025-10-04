@@ -1,6 +1,7 @@
 package com.example.kwh.ui.home
 
 import android.app.Application
+import com.example.kwh.billing.DefaultBillingCycleCalculator
 import com.example.kwh.data.MeterEntity
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.reminders.ReminderScheduler
@@ -17,6 +18,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -27,11 +31,12 @@ class HomeViewModelTest {
     private lateinit var repository: MeterRepository
     private lateinit var scheduler: RecordingScheduler
     private lateinit var viewModel: HomeViewModel
+    private val clock: Clock = Clock.fixed(Instant.parse("2024-03-20T00:00:00Z"), ZoneOffset.UTC)
 
     @Before
     fun setup() {
         val dao = FakeMeterDao()
-        repository = MeterRepository(dao)
+        repository = MeterRepository(dao, DefaultBillingCycleCalculator(), clock)
         scheduler = RecordingScheduler(Application(), FakeSnoozePreferenceReader())
         viewModel = HomeViewModel(
             repository = repository,

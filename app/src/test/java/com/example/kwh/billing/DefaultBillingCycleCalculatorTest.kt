@@ -34,6 +34,36 @@ class DefaultBillingCycleCalculatorTest {
     }
 
     @Test
+    fun `anchor 29 handles february in non leap year`() {
+        val clock = Clock.fixed(Instant.parse("2023-02-20T00:00:00Z"), zone)
+
+        val window = calculator.currentWindow(anchorDay = 29, clock = clock)
+
+        assertEquals("2023-01-29", window.start.atZone(zone).toLocalDate().toString())
+        assertEquals("2023-02-28", window.end.atZone(zone).toLocalDate().toString())
+    }
+
+    @Test
+    fun `anchor 30 handles february in non leap year`() {
+        val clock = Clock.fixed(Instant.parse("2023-02-20T00:00:00Z"), zone)
+
+        val window = calculator.currentWindow(anchorDay = 30, clock = clock)
+
+        assertEquals("2023-01-30", window.start.atZone(zone).toLocalDate().toString())
+        assertEquals("2023-02-28", window.end.atZone(zone).toLocalDate().toString())
+    }
+
+    @Test
+    fun `anchor 31 handles february in non leap year`() {
+        val clock = Clock.fixed(Instant.parse("2023-02-20T00:00:00Z"), zone)
+
+        val window = calculator.currentWindow(anchorDay = 31, clock = clock)
+
+        assertEquals("2023-01-31", window.start.atZone(zone).toLocalDate().toString())
+        assertEquals("2023-02-28", window.end.atZone(zone).toLocalDate().toString())
+    }
+
+    @Test
     fun `leap year preserves february 29 for anchor 31`() {
         val clock = Clock.fixed(Instant.parse("2024-02-20T00:00:00Z"), zone)
 
