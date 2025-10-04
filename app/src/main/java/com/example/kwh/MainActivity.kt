@@ -19,8 +19,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.kwh.ui.app.KwhTheme
-import com.example.kwh.settings.SettingsScreen
-import com.example.kwh.settings.SettingsViewModel
 import com.example.kwh.ui.home.HomeEvent
 import com.example.kwh.ui.home.HomeScreen
 import com.example.kwh.ui.home.HomeViewModel
