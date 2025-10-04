@@ -22,7 +22,9 @@ object DatabaseModule {
             context,
             MeterDatabase::class.java,
             "meter.db"
-        ).build()
+        )
+            .addMigrations(MeterDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides

@@ -23,6 +23,10 @@ class MeterDaoTest {
     @Test
     fun insertMeterAndReadings_emitsLatestReading() = runTest {
         val meterId = dao.insertMeter(MeterEntity(name = "Home"))
+        val inserted = dao.getMeterById(meterId)
+        assertNotNull(inserted)
+        assertEquals(1, inserted.billingAnchorDay)
+        assertEquals("200,300", inserted.thresholdsCsv)
         dao.insertReading(
             MeterReadingEntity(
                 meterId = meterId,
