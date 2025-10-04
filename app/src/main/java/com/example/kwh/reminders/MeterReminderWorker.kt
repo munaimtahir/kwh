@@ -15,7 +15,18 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.example.kwh.billing.CycleStats
+import com.example.kwh.repository.MeterRepository
 import com.example.kwh.settings.SettingsRepository
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.time.temporal.ChronoUnit
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -23,6 +34,14 @@ class MeterReminderWorker(
     appContext: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
+
+    private val repository: MeterRepository by lazy {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            WorkerEntryPoint::class.java
+        )
+        entryPoint.meterRepository()
+    }
 
     override suspend fun doWork(): Result {
         val meterId = inputData.getLong(KEY_METER_ID, -1)
@@ -37,8 +56,18 @@ class MeterReminderWorker(
         val minute = inputData.getInt(KEY_MINUTE, 0)
         val snoozeMinutes = inputData.getInt(KEY_SNOOZE_MINUTES, SettingsRepository.DEFAULT_SNOOZE)
 
+        val cycleStats = repository.getCycleStats(meterId)
         Log.i(TAG, "Posting reminder for meter=$meterId name=$meterName")
-        showNotification(meterId, meterName, frequencyDays, hour, minute, snoozeMinutes)
+        val additionalLines = cycleStats?.let { buildAdditionalMessages(it) } ?: emptyList()
+        showNotification(
+            meterId = meterId,
+            meterName = meterName,
+            frequencyDays = frequencyDays,
+            hour = hour,
+            minute = minute,
+            snoozeMinutes = snoozeMinutes,
+            additionalLines = additionalLines
+        )
 
         scheduleNextReminder(
             context = applicationContext,
@@ -61,7 +90,8 @@ class MeterReminderWorker(
         frequencyDays: Int,
         hour: Int,
         minute: Int,
-        snoozeMinutes: Int
+        snoozeMinutes: Int,
+        additionalLines: List<String>
     ) {
         ensureChannel()
         val snoozeIntent = Intent(applicationContext, SnoozeReceiver::class.java).apply {
@@ -79,6 +109,10 @@ class MeterReminderWorker(
             snoozeIntent,
             pendingFlags
         )
+        val contentLines = buildList {
+            add(meterName)
+            addAll(additionalLines)
+        }
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_more)
             .setContentTitle(applicationContext.getString(com.example.kwh.R.string.reminder_notification_title))
@@ -93,9 +127,42 @@ class MeterReminderWorker(
                 ),
                 snoozePendingIntent
             )
+            .setStyle(NotificationCompat.BigTextStyle().bigText(contentLines.joinToString("\n")))
             .build()
 
         NotificationManagerCompat.from(applicationContext).notify(meterId.toInt(), notification)
+    }
+
+    private fun buildAdditionalMessages(stats: CycleStats): List<String> {
+        val zone: ZoneId = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val messages = mutableListOf<String>()
+
+        val thresholdDate = stats.nextThresholdDate
+        val thresholdValue = stats.nextThreshold
+        if (thresholdDate != null && thresholdValue != null) {
+            val daysUntil = ChronoUnit.DAYS.between(today, thresholdDate)
+            if (daysUntil in 0 until THRESHOLD_WARNING_WINDOW_DAYS) {
+                val formattedDate = thresholdDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                messages += applicationContext.getString(
+                    com.example.kwh.R.string.reminder_notification_threshold,
+                    thresholdValue,
+                    formattedDate
+                )
+            }
+        }
+
+        if (stats.latest == null) {
+            val cycleStart = stats.window.start.atZone(zone).toLocalDate()
+            val daysIntoCycle = ChronoUnit.DAYS.between(cycleStart, today)
+            if (daysIntoCycle > NO_READING_NUDGE_THRESHOLD_DAYS) {
+                messages += applicationContext.getString(
+                    com.example.kwh.R.string.reminder_notification_no_reading
+                )
+            }
+        }
+
+        return messages
     }
 
     private fun ensureChannel() {
@@ -125,6 +192,25 @@ class MeterReminderWorker(
         const val EXTRA_HOUR = "extra_hour"
         const val EXTRA_MINUTE = "extra_minute"
         const val EXTRA_SNOOZE_MINUTES = "extra_snooze_minutes"
+
+        /**
+         * Threshold warning window in days. When a threshold is expected to be crossed within
+         * this many days, a proactive alert will be shown in the notification.
+         */
+        private const val THRESHOLD_WARNING_WINDOW_DAYS = 7
+
+        /**
+         * Minimum days into cycle before showing "no reading" nudge. If no readings have been
+         * recorded in the current cycle and this many days have elapsed, a nudge notification
+         * will be shown.
+         */
+        private const val NO_READING_NUDGE_THRESHOLD_DAYS = 10
+
+        @EntryPoint
+        @InstallIn(SingletonComponent::class)
+        interface WorkerEntryPoint {
+            fun meterRepository(): MeterRepository
+        }
 
         fun scheduleReminder(
             context: Context,

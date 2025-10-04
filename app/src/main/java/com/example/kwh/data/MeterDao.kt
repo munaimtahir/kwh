@@ -24,6 +24,29 @@ interface MeterDao {
     @Query("SELECT * FROM meter_readings WHERE id = :readingId")
     suspend fun getReadingById(readingId: Long): MeterReadingEntity?
 
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at < :start ORDER BY recorded_at DESC LIMIT 1"
+    )
+    suspend fun getLatestReadingBefore(meterId: Long, start: Long): MeterReadingEntity?
+
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at >= :start AND recorded_at < :end ORDER BY recorded_at ASC LIMIT 1"
+    )
+    suspend fun getEarliestReadingInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity?
+
+    @Query(
+        "SELECT * FROM meter_readings WHERE meter_id = :meterId AND recorded_at >= :start AND recorded_at < :end ORDER BY recorded_at DESC LIMIT 1"
+    )
+    suspend fun getLatestReadingInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeter(meter: MeterEntity): Long
 

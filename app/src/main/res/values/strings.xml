@@ -65,6 +65,8 @@
     <!-- Reminder notification strings -->
     <string name="reminder_notification_title">Time to log your meter reading</string>
     <string name="snooze_for_minutes">Snooze for %1$d minutes</string>
+    <string name="reminder_notification_threshold">Projected to cross %1$d units on %2$s.</string>
+    <string name="reminder_notification_no_reading">No reading logged yet this cycle. Add a reading to stay on track.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

@@ -16,8 +16,12 @@ import java.time.LocalDate
 import kotlin.math.ceil
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.max
+import kotlin.math.round
 
 @Singleton
 class MeterRepository @Inject constructor(
