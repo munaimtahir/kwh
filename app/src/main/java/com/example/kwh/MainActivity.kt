@@ -19,8 +19,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.kwh.ui.app.KwhTheme
-import com.example.kwh.settings.SettingsScreen
-import com.example.kwh.settings.SettingsViewModel
 import com.example.kwh.ui.home.HomeEvent
 import com.example.kwh.ui.home.HomeScreen
 import com.example.kwh.ui.home.HomeViewModel
@@ -28,6 +26,8 @@ import com.example.kwh.ui.history.HistoryScreen
 import com.example.kwh.ui.history.HistoryViewModel
 import com.example.kwh.ui.metersettings.MeterSettingsScreen
 import com.example.kwh.ui.metersettings.MeterSettingsViewModel
+import com.example.kwh.settings.SettingsScreen
+import com.example.kwh.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
