@@ -142,7 +142,7 @@ class MeterReminderWorker(
         val thresholdValue = stats.nextThreshold
         if (thresholdDate != null && thresholdValue != null) {
             val daysUntil = ChronoUnit.DAYS.between(today, thresholdDate)
-            if (daysUntil in 0..7) {
+            if (daysUntil in 0..THRESHOLD_WARNING_WINDOW_DAYS) {
                 val formattedDate = thresholdDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
                 messages += applicationContext.getString(
                     com.example.kwh.R.string.reminder_notification_threshold,
@@ -155,7 +155,7 @@ class MeterReminderWorker(
         if (stats.latest == null) {
             val cycleStart = stats.window.start.atZone(zone).toLocalDate()
             val daysIntoCycle = ChronoUnit.DAYS.between(cycleStart, today)
-            if (daysIntoCycle > 10) {
+            if (daysIntoCycle > NO_READING_NUDGE_THRESHOLD_DAYS) {
                 messages += applicationContext.getString(
                     com.example.kwh.R.string.reminder_notification_no_reading
                 )
@@ -192,6 +192,19 @@ class MeterReminderWorker(
         const val EXTRA_HOUR = "extra_hour"
         const val EXTRA_MINUTE = "extra_minute"
         const val EXTRA_SNOOZE_MINUTES = "extra_snooze_minutes"
+
+        /**
+         * Threshold warning window in days. When a threshold is expected to be crossed within
+         * this many days, a proactive alert will be shown in the notification.
+         */
+        private const val THRESHOLD_WARNING_WINDOW_DAYS = 7
+
+        /**
+         * Minimum days into cycle before showing "no reading" nudge. If no readings have been
+         * recorded in the current cycle and this many days have elapsed, a nudge notification
+         * will be shown.
+         */
+        private const val NO_READING_NUDGE_THRESHOLD_DAYS = 10
 
         @EntryPoint
         @InstallIn(SingletonComponent::class)
