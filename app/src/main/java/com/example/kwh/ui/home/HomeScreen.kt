@@ -41,12 +41,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Surface
 import com.example.kwh.R
 import com.example.kwh.ui.components.NumberField
 import com.example.kwh.ui.components.PrimaryButton
 import com.example.kwh.ui.components.SectionCard
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +64,8 @@ fun HomeScreen(
     onReminderChanged: (Long, Boolean, Int, Int, Int) -> Unit,
     onViewHistory: (Long) -> Unit,
     onDeleteMeter: (Long) -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenMeterSettings: (Long) -> Unit,
+    onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -71,7 +74,7 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(text = stringResource(id = R.string.meters)) },
                 actions = {
-                    IconButton(onClick = onOpenSettings) {
+                    IconButton(onClick = onOpenAppSettings) {
                         Icon(imageVector = Icons.Filled.Settings, contentDescription = stringResource(id = R.string.settings_title))
                     }
                 }
@@ -121,7 +124,8 @@ fun HomeScreen(
                             onReminderChanged(meter.id, enabled, frequency, hour, minute)
                         },
                         onViewHistory = { onViewHistory(meter.id) },
-                        onDeleteMeter = { onDeleteMeter(meter.id) }
+                        onDeleteMeter = { onDeleteMeter(meter.id) },
+                        onOpenSettings = { onOpenMeterSettings(meter.id) }
                     )
                 }
             }
@@ -156,7 +160,8 @@ private fun MeterCard(
     onAddReadingClick: () -> Unit,
     onReminderChanged: (Boolean, Int, Int, Int) -> Unit,
     onViewHistory: () -> Unit,
-    onDeleteMeter: () -> Unit
+    onDeleteMeter: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -186,6 +191,40 @@ private fun MeterCard(
                     Icon(
                         imageVector = Icons.Filled.Delete,
                         contentDescription = stringResource(id = R.string.delete_meter)
+                    )
+                }
+            }
+            val cycle = meter.cycle
+            val cycleFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+            val startText = remember(cycle.start) { cycleFormatter.format(cycle.start.atZone(ZoneId.systemDefault())) }
+            val endText = remember(cycle.end) { cycleFormatter.format(cycle.end.atZone(ZoneId.systemDefault())) }
+            Text(
+                text = stringResource(id = R.string.cycle_range, startText, endText),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatChip(text = stringResource(id = R.string.cycle_used_chip, formatUnits(cycle.usedUnits)))
+                val projected = if (cycle.hasProjection) {
+                    formatUnits(cycle.projectedUnits)
+                } else {
+                    stringResource(id = R.string.value_placeholder)
+                }
+                StatChip(text = stringResource(id = R.string.cycle_projected_chip, projected))
+            }
+            cycle.nextThresholdValue?.let { thresholdValue ->
+                val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+                cycle.nextThresholdDate?.let { eta ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(
+                            id = R.string.next_threshold_eta,
+                            thresholdValue,
+                            dateFormatter.format(eta)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -222,14 +261,38 @@ private fun MeterCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = stringResource(id = R.string.view_history))
                 }
+                TextButton(onClick = onOpenSettings) {
+                    Icon(imageVector = Icons.Filled.Settings, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = stringResource(id = R.string.settings_action))
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             ReminderSettings(
                 meter = meter,
-                onReminderChanged = onReminderChanged
-            )
-        }
+            onReminderChanged = onReminderChanged
+        )
     }
+}
+
+@Composable
+private fun StatChip(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+private fun formatUnits(value: Double): String {
+    return String.format(Locale.getDefault(), "%.1f", value)
+}
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -354,7 +417,7 @@ private fun AddMeterDialog(
     onSave: (String, Int, Int, Int) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var frequencyText by remember { mutableStateOf("30") }
+    var frequencyText by remember { mutableStateOf("7") }
     var hourText by remember { mutableStateOf("9") }
     var minuteText by remember { mutableStateOf("0") }
     var showError by remember { mutableStateOf(false) }

@@ -42,15 +42,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.kwh.R
+import com.example.kwh.ui.components.SectionCard
+import java.time.Duration
 import java.io.BufferedReader
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -151,6 +155,9 @@ fun HistoryScreen(
                 selected = uiState.filter,
                 onSelected = viewModel::onFilterSelected
             )
+            uiState.cycle?.let { summary ->
+                CycleSummaryCard(summary = summary)
+            }
             TrendChart(uiState.trend)
             if (uiState.isEmpty) {
                 Column(
@@ -218,9 +225,17 @@ private fun FilterChips(selected: HistoryFilter, onSelected: (HistoryFilter) -> 
 
 @Composable
 private fun TrendChart(data: TrendChartData) {
-    if (data.points.size < 2) return
-    val maxValue = data.points.maxOf { it.value }
-    val minValue = data.points.minOf { it.value }
+    val start = data.windowStart
+    val end = data.windowEnd
+    if (start == null || end == null || data.points.size < 2) return
+    val durationMillis = Duration.between(start, end).toMillis().coerceAtLeast(1L)
+    val values = buildList {
+        addAll(data.points.map { it.value })
+        data.projection?.let { add(it.endValue) }
+    }
+    if (values.isEmpty()) return
+    val maxValue = values.maxOrNull() ?: return
+    val minValue = values.minOrNull() ?: return
     val span = (maxValue - minValue).takeIf { it != 0.0 } ?: 1.0
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -233,9 +248,10 @@ private fun TrendChart(data: TrendChartData) {
         val path = Path()
         val width = size.width
         val height = size.height
-        val step = width / (data.points.size - 1)
         data.points.forEachIndexed { index, point ->
-            val x = step * index
+            val elapsed = Duration.between(start, point.instant).toMillis().coerceIn(0, durationMillis)
+            val fraction = elapsed.toFloat() / durationMillis.toFloat()
+            val x = fraction * width
             val normalized = (point.value - minValue) / span
             val y = height - (normalized.toFloat() * height)
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
@@ -245,6 +261,86 @@ private fun TrendChart(data: TrendChartData) {
             color = primaryColor,
             style = Stroke(width = 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
+
+        data.projection?.let { projection ->
+            val lastPoint = data.points.last()
+            val lastElapsed = Duration.between(start, lastPoint.instant).toMillis().coerceIn(0, durationMillis)
+            val startFraction = lastElapsed.toFloat() / durationMillis.toFloat()
+            val startX = startFraction * width
+            val startNormalized = (lastPoint.value - minValue) / span
+            val startY = height - (startNormalized.toFloat() * height)
+            val endNormalized = (projection.endValue - minValue) / span
+            val endY = height - (endNormalized.toFloat() * height)
+            drawLine(
+                color = primaryColor,
+                start = Offset(startX, startY),
+                end = Offset(width, endY),
+                strokeWidth = 4f,
+                cap = StrokeCap.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 12f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun CycleSummaryCard(summary: CycleSummary) {
+    val rangeFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm") }
+    val thresholdFormatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+    val startText = remember(summary.start) { rangeFormatter.format(summary.start.atZone(ZoneId.systemDefault())) }
+    val endText = remember(summary.end) { rangeFormatter.format(summary.end.atZone(ZoneId.systemDefault())) }
+    SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = stringResource(id = R.string.history_cycle_range, startText, endText), style = MaterialTheme.typography.titleSmall)
+            summary.baseline?.let {
+                val baselineDate = remember(it.recordedAt) {
+                    dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
+                }
+                Text(
+                    text = stringResource(
+                        id = R.string.history_baseline,
+                        it.value,
+                        baselineDate
+                    ),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            summary.latest?.let {
+                val latestDate = remember(it.recordedAt) {
+                    dateTimeFormatter.format(it.recordedAt.atZone(ZoneId.systemDefault()))
+                }
+                Text(
+                    text = stringResource(
+                        id = R.string.history_latest,
+                        it.value,
+                        latestDate
+                    ),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                text = stringResource(id = R.string.history_used, summary.usedUnits),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = stringResource(id = R.string.history_projected, summary.projectedUnits),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = stringResource(id = R.string.history_rate, summary.ratePerDay),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (summary.nextThresholdValue != null && summary.nextThresholdDate != null) {
+                val etaText = remember(summary.nextThresholdDate) {
+                    thresholdFormatter.format(summary.nextThresholdDate)
+                }
+                Text(
+                    text = stringResource(id = R.string.history_next_threshold, summary.nextThresholdValue, etaText),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
 }
 
