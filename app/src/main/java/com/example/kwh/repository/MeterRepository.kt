@@ -199,7 +199,7 @@ class MeterRepository @Inject constructor(
         }
 
         val projected = if (baselineSnapshot != null && latestSnapshot != null) {
-            rate * cycleLengthDays(window)
+            round(rate * cycleLengthDays(window))
         } else {
             0.0
         }

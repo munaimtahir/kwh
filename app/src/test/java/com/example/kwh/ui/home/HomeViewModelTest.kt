@@ -36,7 +36,7 @@ class HomeViewModelTest {
     @Before
     fun setup() {
         val dao = FakeMeterDao()
-        repository = MeterRepository(dao, DefaultBillingCycleCalculator(), clock)
+        repository = MeterRepository(dao, clock, DefaultBillingCycleCalculator())
         scheduler = RecordingScheduler(Application(), FakeSnoozePreferenceReader())
         viewModel = HomeViewModel(
             repository = repository,

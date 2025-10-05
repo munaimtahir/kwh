@@ -40,6 +40,10 @@ class FakeMeterDao : MeterDao {
             .maxByOrNull { it.recordedAt }
     }
 
+    override suspend fun latestBefore(meterId: Long, start: Long): MeterReadingEntity? {
+        return getLatestReadingBefore(meterId, start)
+    }
+
     override suspend fun getEarliestReadingInWindow(
         meterId: Long,
         start: Long,
@@ -50,6 +54,14 @@ class FakeMeterDao : MeterDao {
             .minByOrNull { it.recordedAt }
     }
 
+    override suspend fun earliestInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity? {
+        return getEarliestReadingInWindow(meterId, start, end)
+    }
+
     override suspend fun getLatestReadingInWindow(
         meterId: Long,
         start: Long,
@@ -58,6 +70,14 @@ class FakeMeterDao : MeterDao {
         return readings
             .filter { it.meterId == meterId && it.recordedAt in start until end }
             .maxByOrNull { it.recordedAt }
+    }
+
+    override suspend fun latestInWindow(
+        meterId: Long,
+        start: Long,
+        end: Long
+    ): MeterReadingEntity? {
+        return getLatestReadingInWindow(meterId, start, end)
     }
 
     override suspend fun insertMeter(meter: MeterEntity): Long {

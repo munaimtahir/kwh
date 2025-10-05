@@ -148,10 +148,11 @@ fun PrimaryButton(
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
+        val textAlpha = if (loading) 0.7f else 1f
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.alpha(if (loading) 0.38f else 1f)
+            modifier = Modifier.alpha(textAlpha)
         )
     }
 }
