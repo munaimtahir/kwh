@@ -97,8 +97,8 @@ class MainActivity : ComponentActivity() {
                             onAddReadingClick = { meterId ->
                                 homeViewModel.showAddReadingDialog(meterId, true)
                             },
-                            onAddReading = { id, value, notes ->
-                                homeViewModel.addReading(id, value, notes)
+                            onAddReading = { id, value, notes, recordedAt ->
+                                homeViewModel.addReading(id, value, notes, recordedAt)
                             },
                             onDismissReading = {
                                 homeViewModel.showAddReadingDialog(null, false)

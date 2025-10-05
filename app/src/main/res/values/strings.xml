@@ -16,6 +16,7 @@
     <!-- Home screen strings -->
     <string name="reading_value">Reading value</string>
     <string name="reading_notes">Notes</string>
+    <string name="reading_recorded_on">Recorded on %1$s</string>
     <string name="reminder_frequency_days">Reminder frequency (days)</string>
     <string name="reminder_time_hour">Hour</string>
     <string name="reminder_time_minute">Minute</string>
