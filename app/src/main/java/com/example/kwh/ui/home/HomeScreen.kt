@@ -591,7 +591,7 @@ private fun AddReadingDialog(
     var readingText by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
-    var selectedDate by remember(meterId) { mutableStateOf(LocalDate.now()) }
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     val zoneId = remember { ZoneId.systemDefault() }
     val context = LocalContext.current
     val dateFormatter = remember {
