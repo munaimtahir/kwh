@@ -64,6 +64,7 @@ import com.example.kwh.ui.components.NumberField
 import com.example.kwh.ui.components.PrimaryButton
 import com.example.kwh.ui.components.SectionCard
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -623,7 +624,11 @@ private fun AddReadingDialog(
                     showError = true
                     return@TextButton
                 }
-                val recordedAt = selectedDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+                val recordedAt = selectedDate
+                    .atTime(LocalTime.now(zoneId))
+                    .atZone(zoneId)
+                    .toInstant()
+                    .toEpochMilli()
                 onSave(meterId, value, notes.ifBlank { null }, recordedAt)
             }) {
                 Text(text = stringResource(id = R.string.save))
