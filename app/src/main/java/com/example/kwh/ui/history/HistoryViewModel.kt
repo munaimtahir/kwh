@@ -65,6 +65,10 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             repository.meterOverview(meterId).collect { overview ->
                 if (overview != null) {
+                    updateMeterConfig(
+                        anchorDay = overview.meter.billingAnchorDay,
+                        thresholds = overview.meter.thresholdsCsv
+                    )
                     currentCycleStats = overview.cycleStats
                     _uiState.value = _uiState.value.copy(
                         meterName = overview.meter.name,
@@ -220,8 +224,10 @@ class HistoryViewModel @Inject constructor(
                         thresholdsCsv = importedThresholds
                     )
                     repository.updateMeter(updated)
-                    billingAnchorDay = updated.billingAnchorDay
-                    thresholdsCsv = updated.thresholdsCsv
+                    updateMeterConfig(
+                        anchorDay = updated.billingAnchorDay,
+                        thresholds = updated.thresholdsCsv
+                    )
                 }
                 _events.send(HistoryEvent.Imported(newReadings.size))
             } catch (e: Exception) {
@@ -246,6 +252,11 @@ class HistoryViewModel @Inject constructor(
             readings = filtered,
             trend = buildTrendData()
         )
+    }
+
+    private fun updateMeterConfig(anchorDay: Int, thresholds: String) {
+        billingAnchorDay = anchorDay
+        thresholdsCsv = thresholds
     }
 
     private fun buildTrendData(): TrendChartData {
