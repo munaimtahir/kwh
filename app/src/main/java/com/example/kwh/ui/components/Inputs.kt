@@ -29,7 +29,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.ContentAlpha
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -149,10 +148,11 @@ fun PrimaryButton(
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
+        val textAlpha = if (loading) 0.7f else 1f
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.alpha(if (loading) ContentAlpha.medium else 1f)
+            modifier = Modifier.alpha(textAlpha)
         )
     }
 }

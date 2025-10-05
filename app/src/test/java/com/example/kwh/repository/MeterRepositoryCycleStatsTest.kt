@@ -27,7 +27,7 @@ class MeterRepositoryCycleStatsTest {
     @Before
     fun setUp() {
         dao = FakeMeterDao()
-        repository = MeterRepository(dao, DefaultBillingCycleCalculator(), clock)
+        repository = MeterRepository(dao, clock, DefaultBillingCycleCalculator())
     }
 
     @Test
@@ -102,8 +102,10 @@ class MeterRepositoryCycleStatsTest {
         val stats = repository.getCycleStats(meterId)
 
         assertNotNull(stats)
-        assertEquals(50, stats.nextThreshold)
-        assertEquals(LocalDate.parse("2024-03-28"), stats.nextThresholdDate)
+        val threshold = stats.nextThreshold
+        assertNotNull(threshold)
+        assertEquals(50, threshold.threshold)
+        assertEquals(LocalDate.parse("2024-03-28"), threshold.eta)
     }
 
     @Test
@@ -118,7 +120,6 @@ class MeterRepositoryCycleStatsTest {
 
         assertNotNull(stats)
         assertNull(stats.nextThreshold)
-        assertNull(stats.nextThresholdDate)
     }
 
     private fun reading(meterId: Long, date: String, value: Double): MeterReadingEntity {
