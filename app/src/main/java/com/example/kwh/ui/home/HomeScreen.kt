@@ -1,5 +1,6 @@
 package com.example.kwh.ui.home
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,8 +63,10 @@ import com.example.kwh.R
 import com.example.kwh.ui.components.NumberField
 import com.example.kwh.ui.components.PrimaryButton
 import com.example.kwh.ui.components.SectionCard
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,7 +78,7 @@ fun HomeScreen(
     onAddMeter: (String, Int, Int, Int) -> Unit,
     onDismissAddMeter: () -> Unit,
     onAddReadingClick: (Long) -> Unit,
-    onAddReading: (Long, Double, String?) -> Unit,
+    onAddReading: (Long, Double, String?, Long) -> Unit,
     onDismissReading: () -> Unit,
     onReminderChanged: (Long, Boolean, Int, Int, Int) -> Unit,
     onViewHistory: (Long) -> Unit,
@@ -194,8 +199,8 @@ fun HomeScreen(
         AddReadingDialog(
             meterId = uiState.meterIdForReading,
             onDismiss = onDismissReading,
-            onSave = { id, value, notes ->
-                onAddReading(id, value, notes)
+            onSave = { id, value, notes, recordedAt ->
+                onAddReading(id, value, notes, recordedAt)
                 onDismissReading()
             }
         )
@@ -580,11 +585,34 @@ private fun AddMeterDialog(
 private fun AddReadingDialog(
     meterId: Long,
     onDismiss: () -> Unit,
-    onSave: (Long, Double, String?) -> Unit
+    onSave: (Long, Double, String?, Long) -> Unit
 ) {
     var readingText by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var selectedDate by remember(meterId) { mutableStateOf(LocalDate.now()) }
+    val zoneId = remember { ZoneId.systemDefault() }
+    val context = LocalContext.current
+    val dateFormatter = remember {
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(Locale.getDefault())
+    }
+    val formattedDate = remember(selectedDate) { dateFormatter.format(selectedDate) }
+
+    fun showDatePicker() {
+        val initialDate = selectedDate
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
+            },
+            initialDate.year,
+            initialDate.monthValue - 1,
+            initialDate.dayOfMonth
+        ).apply {
+            datePicker.maxDate = System.currentTimeMillis()
+        }.show()
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -595,7 +623,8 @@ private fun AddReadingDialog(
                     showError = true
                     return@TextButton
                 }
-                onSave(meterId, value, notes.ifBlank { null })
+                val recordedAt = selectedDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+                onSave(meterId, value, notes.ifBlank { null }, recordedAt)
             }) {
                 Text(text = stringResource(id = R.string.save))
             }
@@ -623,6 +652,12 @@ private fun AddReadingDialog(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+                OutlinedButton(
+                    onClick = ::showDatePicker,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(id = R.string.reading_recorded_on, formattedDate))
                 }
                 TextField(
                     value = notes,

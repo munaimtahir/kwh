@@ -70,18 +70,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun addReading(meterId: Long, value: Double, notes: String?) {
+    fun addReading(meterId: Long, value: Double, notes: String?, recordedAt: Long) {
         if (value.isNaN() || value <= 0.0) {
             emitError(stringResolver.get(R.string.error_positive_reading))
             return
         }
+        val sanitizedRecordedAt = minOf(recordedAt, System.currentTimeMillis())
         viewModelScope.launch {
             runCatching {
                 repository.addReading(
                     meterId = meterId,
                     value = value,
                     notes = notes,
-                    recordedAt = System.currentTimeMillis()
+                    recordedAt = sanitizedRecordedAt
                 )
             }.onSuccess {
             }
