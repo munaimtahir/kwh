@@ -20,10 +20,19 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Debug signing config is auto-configured by Android SDK
+        }
+    }
+
     buildTypes {
         debug { isMinifyEnabled = false }
         release {
             isMinifyEnabled = false
+            // Sign release builds with debug key for easy installation
+            // For production, replace with a proper release keystore
+            signingConfig = signingConfigs.getByName("debug")
             // If/when you enable shrinking/obfuscation:
             // proguardFiles(
             //     getDefaultProguardFile("proguard-android-optimize.txt"),
