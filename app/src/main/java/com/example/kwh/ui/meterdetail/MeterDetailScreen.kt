@@ -158,13 +158,13 @@ fun MeterDetailScreen(
                     StatCard(
                         title = stringResource(id = R.string.meter_detail_usage_today),
                         value = formatUnits(uiState.ratePerDay),
-                        unit = "kWh/day",
+                        unit = stringResource(id = R.string.meter_detail_kwh_per_day_unit),
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
                         title = stringResource(id = R.string.meter_detail_projected),
                         value = formatUnits(uiState.projectedUnits),
-                        unit = "kWh",
+                        unit = stringResource(id = R.string.meter_detail_kwh_unit),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -291,7 +291,7 @@ private fun ReadingGauge(
     )
 
     LaunchedEffect(usedUnits, projectedUnits) {
-        targetProgress = if (projectedUnits > 0 && hasProjection) {
+        targetProgress = if (projectedUnits > 0.0 && hasProjection) {
             (usedUnits / projectedUnits).coerceIn(0.0, 1.0).toFloat()
         } else {
             0f

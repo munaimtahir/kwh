@@ -86,6 +86,7 @@
     <!-- Meter detail screen -->
     <string name="meter_detail_last_reading">%1$.1f</string>
     <string name="meter_detail_kwh_unit">kWh</string>
+    <string name="meter_detail_kwh_per_day_unit">kWh/day</string>
     <string name="meter_detail_no_reading">---</string>
     <string name="meter_detail_add_reading">Add Reading</string>
     <string name="meter_detail_see_graph">See Graph</string>

@@ -23,7 +23,7 @@ class MeterDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     val meterId: Long = savedStateHandle.get<Long>("meterId")
-        ?: throw IllegalStateException("Missing meterId argument")
+        ?: throw IllegalStateException("Required navigation parameter meterId is missing from SavedStateHandle")
 
     private val _uiState = MutableStateFlow(MeterDetailUiState())
     val uiState: StateFlow<MeterDetailUiState> = _uiState.asStateFlow()
