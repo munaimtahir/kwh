@@ -87,9 +87,10 @@ class MeterSettingsViewModel @Inject constructor(
             val deleted = repository.deleteMeter(meterId)
             if (deleted) {
                 reminderScheduler.disableReminder(meterId)
+                _uiState.value = _uiState.value.copy(showDeleteDialog = false)
                 _events.send(MeterSettingsEvent.Deleted)
             } else {
-                _uiState.value = _uiState.value.copy(isDeleting = false)
+                _uiState.value = _uiState.value.copy(isDeleting = false, showDeleteDialog = false)
                 emitError(stringResolver.get(R.string.error_deleting_meter))
             }
         }
