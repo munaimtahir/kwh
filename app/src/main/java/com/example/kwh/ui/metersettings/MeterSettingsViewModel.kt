@@ -38,14 +38,17 @@ class MeterSettingsViewModel @Inject constructor(
             repository.meterOverview(meterId).collect { overview ->
                 overview?.let { data ->
                     val current = _uiState.value
+                    val nameText = if (current.isDirty) current.meterNameText else data.meter.name
                     val anchorText = if (current.isDirty) current.anchorDayText else data.meter.billingAnchorDay.toString()
                     val thresholdsText = if (current.isDirty) current.thresholdsText else data.meter.thresholdsCsv
                     val frequencyText = if (current.isDirty) current.reminderFrequencyText else data.meter.reminderFrequencyDays.toString()
                     _uiState.value = current.copy(
                         meterName = data.meter.name,
+                        meterNameText = nameText,
                         anchorDayText = anchorText,
                         thresholdsText = thresholdsText,
                         reminderFrequencyText = frequencyText,
+                        initialMeterName = data.meter.name,
                         initialAnchorDay = data.meter.billingAnchorDay,
                         initialThresholds = data.meter.thresholdsCsv,
                         initialReminderFrequency = data.meter.reminderFrequencyDays,
@@ -54,6 +57,10 @@ class MeterSettingsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun onMeterNameChanged(value: String) {
+        _uiState.value = _uiState.value.copy(meterNameText = value)
     }
 
     fun onAnchorDayChanged(value: String) {
@@ -70,9 +77,34 @@ class MeterSettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(reminderFrequencyText = filtered)
     }
 
+    fun toggleDeleteDialog(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showDeleteDialog = show)
+    }
+
+    fun deleteMeter() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDeleting = true)
+            val deleted = repository.deleteMeter(meterId)
+            if (deleted) {
+                reminderScheduler.disableReminder(meterId)
+                _uiState.value = _uiState.value.copy(showDeleteDialog = false)
+                _events.send(MeterSettingsEvent.Deleted)
+            } else {
+                _uiState.value = _uiState.value.copy(isDeleting = false, showDeleteDialog = false)
+                emitError(stringResolver.get(R.string.error_deleting_meter))
+            }
+        }
+    }
+
     fun save() {
         val state = _uiState.value
         if (!state.canSave) return
+
+        val name = state.meterNameText.trim()
+        if (name.isBlank()) {
+            emitError(stringResolver.get(R.string.meter_settings_name_error))
+            return
+        }
 
         val anchor = state.anchorDayText.toIntOrNull()
         if (anchor == null || anchor !in 1..31) {
@@ -94,6 +126,14 @@ class MeterSettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = state.copy(isSaving = true)
+            
+            // First update meter name if changed
+            val meter = repository.getMeter(meterId)
+            if (meter != null && meter.name != name) {
+                val updatedMeter = meter.copy(name = name)
+                repository.updateMeter(updatedMeter)
+            }
+            
             val updated = repository.updateMeterSettings(
                 meterId = meterId,
                 billingAnchorDay = anchor,
@@ -106,6 +146,9 @@ class MeterSettingsViewModel @Inject constructor(
                 }
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
+                    meterName = name,
+                    meterNameText = name,
+                    initialMeterName = name,
                     initialAnchorDay = anchor,
                     initialThresholds = sanitizedThresholds,
                     initialReminderFrequency = frequency,
@@ -145,25 +188,31 @@ class MeterSettingsViewModel @Inject constructor(
 
 data class MeterSettingsUiState(
     val meterName: String = "",
+    val meterNameText: String = "",
     val anchorDayText: String = "1",
     val thresholdsText: String = "",
     val reminderFrequencyText: String = "7",
+    val initialMeterName: String = "",
     val initialAnchorDay: Int = 1,
     val initialThresholds: String = "",
     val initialReminderFrequency: Int = 7,
     val isLoading: Boolean = true,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val showDeleteDialog: Boolean = false,
+    val isDeleting: Boolean = false
 ) {
     val isDirty: Boolean
-        get() = anchorDayText != initialAnchorDay.toString() ||
+        get() = meterNameText != initialMeterName ||
+            anchorDayText != initialAnchorDay.toString() ||
             thresholdsText != initialThresholds ||
             reminderFrequencyText != initialReminderFrequency.toString()
 
     val canSave: Boolean
-        get() = !isSaving && anchorDayText.isNotBlank() && reminderFrequencyText.isNotBlank()
+        get() = !isSaving && meterNameText.isNotBlank() && anchorDayText.isNotBlank() && reminderFrequencyText.isNotBlank()
 }
 
 sealed interface MeterSettingsEvent {
     data class Saved(val message: String) : MeterSettingsEvent
     data class Error(val message: String) : MeterSettingsEvent
+    object Deleted : MeterSettingsEvent
 }
