@@ -173,7 +173,11 @@ class MainActivity : ComponentActivity() {
                         val meterSettingsViewModel: MeterSettingsViewModel = hiltViewModel()
                         MeterSettingsScreen(
                             viewModel = meterSettingsViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onDeleted = {
+                                // Navigate back to home after meter deletion
+                                navController.popBackStack(route = "home", inclusive = false)
+                            }
                         )
                     }
                     composable("settings") {
