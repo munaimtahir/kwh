@@ -39,3 +39,48 @@ _Last updated: 2025-09-25 18:37_
 - Manual QA across Android 8–14 (at least one device + emulator).
 
 **Exit:** Ready for internal or Play Store release.
+
+---
+
+## Environment Switching Initiative
+
+Full spec: `docs/ENVIRONMENT_SWITCHING_SPEC.md`. Build process: `docs/AGENT_ENVIRONMENT_SWITCHING.md`. Granular checklist: `docs/TASKS.md`.
+
+## M6 — Environment & Activation Groundwork
+- `EnvironmentEntity`, `environment_id` + `safety_buffer_days` on `MeterEntity`, `MeterActivationEntity`.
+- Room migration 2→3 (additive, backward compatible for ungrouped meters).
+- DAO additions: environment CRUD, activation queries (active activation per meter, active meter per environment).
+- Migration + DAO round-trip tests.
+
+**Exit:** Schema in place; existing meters/readings unaffected; new tables/queries covered by tests.
+
+## M7 — Environments & Manual Activation
+- Repository: create/rename/delete environment, assign/unassign meter, `activateMeter()` (closes prior open activation in the environment, opens new one), `getActiveMeter(environmentId)`, `activationHistory(meterId)`.
+- Home screen groups meters by environment (with an "Ungrouped" bucket); active-meter indicator; Meter Settings gains environment assignment + activation history view.
+- Repository + ViewModel tests for activation transitions (including idempotency and same-meter re-activation).
+
+**Exit:** User can group meters into an environment and manually mark which one is active, with a persisted history of switches.
+
+## M8 — Switch Recommendation Engine
+- Active-day-weighted rate calculation (activation-log-aware, replacing calendar-elapsed days for meters in an environment).
+- `SwitchAdvisor`: turns the active meter's threshold ETA into `switchByDate` + urgency (normal/soon/overdue) using `safety_buffer_days`.
+- Recommendation banner on Home/Meter Detail with "Mark switched" action; new switch-reminder notification (reusing `MeterReminderWorker`/WorkManager pattern).
+- Unit tests: rate math with activation gaps, `SwitchAdvisor` across rate/threshold/buffer combinations and the zero-rate/overdue edge cases.
+
+**Exit:** Active meter surfaces a dated switch recommendation that reflects real (active-day) usage, with a notification nudge before the deadline.
+
+## M9 — Adaptive Calibration
+- `SwitchOutcomeEntity` logging predicted vs. actual switch date/units at each switch.
+- Rolling-error calculation and bounded auto-adjustment of `safety_buffer_days` per meter.
+- Accuracy indicator in Meter/Environment settings.
+- Calibration convergence tests with synthetic switch-history sequences.
+
+**Exit:** Safety buffer self-tunes from the app's own switch history instead of staying a fixed constant.
+
+## M10 — Polish & Release
+- CSV export/import extended with environment assignment + activation log rows.
+- `DataModel.md`/`Architecture.md`/`ALGORITHMS.md` updated with final schema and formulas.
+- Full regression pass (existing + new tests green); QA checklist re-run.
+- Version bump + changelog entry.
+
+**Exit:** Feature is documented, tested, and release-ready alongside the rest of the app.

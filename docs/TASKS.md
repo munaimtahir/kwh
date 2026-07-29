@@ -28,3 +28,42 @@
 - [x] Privacy note in README
 - [x] QA runs across API 26/30/34
     - Pixel 6 (API 34), Pixel 4a (API 30), Nexus 5X emulator (API 26)
+
+---
+
+## Environment Switching Initiative
+Spec: `docs/ENVIRONMENT_SWITCHING_SPEC.md` — Process: `docs/AGENT_ENVIRONMENT_SWITCHING.md` — Milestones: `docs/Roadmap.md` (M6–M10).
+
+## M6 — Environment & Activation Groundwork
+- [ ] `EnvironmentEntity` (id, name)
+- [ ] `MeterEntity`: add `environment_id` (nullable) + `safety_buffer_days` (default 3)
+- [ ] `MeterActivationEntity` (meter_id, started_at, ended_at nullable)
+- [ ] Room migration 2→3, additive/backward compatible
+- [ ] DAO: environment CRUD; active-activation-per-meter and active-meter-per-environment queries
+- [ ] Migration test + DAO round-trip tests
+
+## M7 — Environments & Manual Activation
+- [ ] Repository: create/rename/delete environment; assign/unassign meter
+- [ ] Repository: `activateMeter()` (closes prior open activation, opens new one), `getActiveMeter()`, `activationHistory()`
+- [ ] Home screen: group by environment + "Ungrouped" bucket; active-meter indicator
+- [ ] Meter Settings: environment assignment + activation history view
+- [ ] Repository/ViewModel tests for activation transitions (idempotency, re-activation)
+
+## M8 — Switch Recommendation Engine
+- [ ] Active-day-weighted rate calculation (activation-log aware)
+- [ ] `SwitchAdvisor` domain class (switchByDate + urgency from threshold ETA + safety buffer)
+- [ ] Recommendation banner (Home + Meter Detail) with "Mark switched" action
+- [ ] Switch-reminder notification (new WorkManager worker, reusing existing pattern)
+- [ ] Unit tests: rate math with gaps; `SwitchAdvisor` combinations incl. zero-rate/overdue
+
+## M9 — Adaptive Calibration
+- [ ] `SwitchOutcomeEntity` + logging on each switch
+- [ ] Rolling-error calculation; bounded auto-adjustment of `safety_buffer_days`
+- [ ] Accuracy indicator in settings UI
+- [ ] Calibration convergence tests (synthetic switch histories)
+
+## M10 — Polish & Release
+- [ ] CSV export/import: environment + activation log fields
+- [ ] Update `DataModel.md` / `Architecture.md` / `ALGORITHMS.md`
+- [ ] Full regression pass + QA checklist re-run
+- [ ] Version bump + changelog entry
