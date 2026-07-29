@@ -1,5 +1,13 @@
 # Changelog
 ## [Unreleased] — 2025-09-30
+### Environment Switching — M6 Schema Groundwork (2026-07-29)
+- Added `EnvironmentEntity` (environments table) and `MeterActivationEntity` (meter_activations table, FK cascade on meter delete) to support grouping meters and tracking active-meter switches.
+- Added nullable `environment_id` and `safety_buffer_days` (default 3) columns to `MeterEntity`; existing ungrouped meters are unaffected.
+- Added Room migration 2→3 (additive, backward compatible).
+- Added DAO support for environment CRUD and active-activation/active-meter queries.
+- Added Robolectric-backed migration test (`MeterDatabaseMigrationTest`) and real in-memory Room DAO round-trip tests (`MeterActivationDaoTest`); pinned `@Config(sdk = [34])` since installed Robolectric 4.11.1 doesn't support API 35 (the app's compileSdk/targetSdk).
+- Fixed a pre-existing `HomeViewModelTest` compile break (missing `recordedAt` argument) that was blocking `./gradlew test` for unrelated reasons.
+
 ### Build System & CI Fixes
 - Fixed invalid Compose BOM version (2025.09.01 → 2024.10.00)
 - Fixed non-existent Android Gradle Plugin version (8.6.1 → 8.4.0)

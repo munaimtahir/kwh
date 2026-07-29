@@ -56,7 +56,7 @@ class HomeViewModelTest {
     @Test
     fun addReading_invalidValue_emitsError() = runTest {
         val deferred = async { viewModel.events.first() }
-        viewModel.addReading(meterId = 1, value = -2.0, notes = null)
+        viewModel.addReading(meterId = 1, value = -2.0, notes = null, recordedAt = clock.millis())
         advanceUntilIdle()
         assertTrue(deferred.await() is HomeEvent.Error)
     }

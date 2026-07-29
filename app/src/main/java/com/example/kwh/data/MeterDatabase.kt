@@ -8,8 +8,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [MeterEntity::class, MeterReadingEntity::class],
-    version = 2,
+    entities = [
+        MeterEntity::class,
+        MeterReadingEntity::class,
+        EnvironmentEntity::class,
+        MeterActivationEntity::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class MeterDatabase : RoomDatabase() {
@@ -26,7 +31,7 @@ abstract class MeterDatabase : RoomDatabase() {
                     MeterDatabase::class.java,
                     "meter.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -39,6 +44,34 @@ abstract class MeterDatabase : RoomDatabase() {
                 )
                 database.execSQL(
                     "ALTER TABLE meters ADD COLUMN thresholds_csv TEXT NOT NULL DEFAULT '200,300'"
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `environments` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL)"
+                )
+                database.execSQL(
+                    "ALTER TABLE meters ADD COLUMN environment_id INTEGER DEFAULT NULL"
+                )
+                database.execSQL(
+                    "ALTER TABLE meters ADD COLUMN safety_buffer_days INTEGER NOT NULL DEFAULT 3"
+                )
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `meter_activations` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`meter_id` INTEGER NOT NULL, " +
+                        "`started_at` INTEGER NOT NULL, " +
+                        "`ended_at` INTEGER, " +
+                        "FOREIGN KEY(`meter_id`) REFERENCES `meters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_meter_activations_meter_id` " +
+                        "ON `meter_activations` (`meter_id`)"
                 )
             }
         }

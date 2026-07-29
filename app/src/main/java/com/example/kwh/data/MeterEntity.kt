@@ -13,5 +13,7 @@ data class MeterEntity(
     @ColumnInfo(name = "reminder_hour") val reminderHour: Int = 9,
     @ColumnInfo(name = "reminder_minute") val reminderMinute: Int = 0,
     @ColumnInfo(name = "billing_anchor_day", defaultValue = "1") val billingAnchorDay: Int = 1,
-    @ColumnInfo(name = "thresholds_csv", defaultValue = "'200,300'") val thresholdsCsv: String = "200,300"
+    @ColumnInfo(name = "thresholds_csv", defaultValue = "'200,300'") val thresholdsCsv: String = "200,300",
+    @ColumnInfo(name = "environment_id", defaultValue = "NULL") val environmentId: Long? = null,
+    @ColumnInfo(name = "safety_buffer_days", defaultValue = "3") val safetyBufferDays: Int = 3
 )

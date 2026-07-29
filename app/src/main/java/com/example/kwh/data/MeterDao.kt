@@ -90,4 +90,51 @@ interface MeterDao {
         start: Long,
         end: Long
     ): MeterReadingEntity?
+
+    // --- Environments ---
+
+    @Query("SELECT * FROM environments ORDER BY name ASC")
+    fun observeEnvironments(): Flow<List<EnvironmentEntity>>
+
+    @Query("SELECT * FROM environments WHERE id = :environmentId")
+    suspend fun getEnvironmentById(environmentId: Long): EnvironmentEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEnvironment(environment: EnvironmentEntity): Long
+
+    @Update
+    suspend fun updateEnvironment(environment: EnvironmentEntity)
+
+    @Delete
+    suspend fun deleteEnvironment(environment: EnvironmentEntity)
+
+    // --- Meter activations ---
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertActivation(activation: MeterActivationEntity): Long
+
+    @Update
+    suspend fun updateActivation(activation: MeterActivationEntity)
+
+    @Query(
+        "SELECT * FROM meter_activations WHERE meter_id = :meterId AND ended_at IS NULL " +
+            "ORDER BY started_at DESC LIMIT 1"
+    )
+    suspend fun getActiveActivationForMeter(meterId: Long): MeterActivationEntity?
+
+    @Query(
+        "SELECT * FROM meter_activations WHERE meter_id IN " +
+            "(SELECT id FROM meters WHERE environment_id = :environmentId) " +
+            "AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
+    )
+    suspend fun getActiveActivationForEnvironment(environmentId: Long): MeterActivationEntity?
+
+    @Query(
+        "SELECT * FROM meters WHERE environment_id = :environmentId AND id IN " +
+            "(SELECT meter_id FROM meter_activations WHERE ended_at IS NULL) LIMIT 1"
+    )
+    suspend fun getActiveMeterForEnvironment(environmentId: Long): MeterEntity?
+
+    @Query("SELECT * FROM meter_activations WHERE meter_id = :meterId ORDER BY started_at DESC")
+    fun observeActivationHistory(meterId: Long): Flow<List<MeterActivationEntity>>
 }

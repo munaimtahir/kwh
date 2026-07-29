@@ -35,12 +35,12 @@
 Spec: `docs/ENVIRONMENT_SWITCHING_SPEC.md` — Process: `docs/AGENT_ENVIRONMENT_SWITCHING.md` — Milestones: `docs/Roadmap.md` (M6–M10).
 
 ## M6 — Environment & Activation Groundwork
-- [ ] `EnvironmentEntity` (id, name)
-- [ ] `MeterEntity`: add `environment_id` (nullable) + `safety_buffer_days` (default 3)
-- [ ] `MeterActivationEntity` (meter_id, started_at, ended_at nullable)
-- [ ] Room migration 2→3, additive/backward compatible
-- [ ] DAO: environment CRUD; active-activation-per-meter and active-meter-per-environment queries
-- [ ] Migration test + DAO round-trip tests
+- [x] `EnvironmentEntity` (id, name)
+- [x] `MeterEntity`: add `environment_id` (nullable) + `safety_buffer_days` (default 3)
+- [x] `MeterActivationEntity` (meter_id, started_at, ended_at nullable)
+- [x] Room migration 2→3, additive/backward compatible
+- [x] DAO: environment CRUD; active-activation-per-meter and active-meter-per-environment queries
+- [x] Migration test + DAO round-trip tests
 
 ## M7 — Environments & Manual Activation
 - [ ] Repository: create/rename/delete environment; assign/unassign meter
