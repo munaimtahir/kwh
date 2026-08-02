@@ -99,6 +99,9 @@ interface MeterDao {
     @Query("SELECT * FROM environments WHERE id = :environmentId")
     suspend fun getEnvironmentById(environmentId: Long): EnvironmentEntity?
 
+    @Query("SELECT * FROM meters WHERE environment_id = :environmentId")
+    suspend fun getMetersForEnvironment(environmentId: Long): List<MeterEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEnvironment(environment: EnvironmentEntity): Long
 
@@ -135,6 +138,35 @@ interface MeterDao {
     )
     suspend fun getActiveMeterForEnvironment(environmentId: Long): MeterEntity?
 
+    @Query(
+        "SELECT * FROM meter_activations WHERE meter_id IN " +
+            "(SELECT id FROM meters WHERE environment_id = :environmentId) AND ended_at IS NULL"
+    )
+    suspend fun getOpenActivationsForEnvironment(environmentId: Long): List<MeterActivationEntity>
+
+    @Query("SELECT * FROM meter_activations WHERE ended_at IS NULL")
+    fun observeActiveActivations(): Flow<List<MeterActivationEntity>>
+
+    @Query("SELECT * FROM meter_activations")
+    fun observeAllActivations(): Flow<List<MeterActivationEntity>>
+
+    @Query("SELECT * FROM meter_activations WHERE meter_id = :meterId")
+    suspend fun getActivationsForMeter(meterId: Long): List<MeterActivationEntity>
+
     @Query("SELECT * FROM meter_activations WHERE meter_id = :meterId ORDER BY started_at DESC")
     fun observeActivationHistory(meterId: Long): Flow<List<MeterActivationEntity>>
+
+    // --- Switch outcomes (adaptive calibration, M9) ---
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSwitchOutcome(outcome: SwitchOutcomeEntity): Long
+
+    @Query(
+        "SELECT * FROM switch_outcomes WHERE meter_id = :meterId " +
+            "ORDER BY actual_switch_date DESC LIMIT :limit"
+    )
+    suspend fun getRecentSwitchOutcomes(meterId: Long, limit: Int): List<SwitchOutcomeEntity>
+
+    @Query("SELECT * FROM switch_outcomes WHERE meter_id = :meterId ORDER BY actual_switch_date DESC")
+    fun observeSwitchOutcomes(meterId: Long): Flow<List<SwitchOutcomeEntity>>
 }

@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.kwh.R
+import com.example.kwh.billing.SwitchUrgency
 import com.example.kwh.ui.components.SectionCard
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -73,7 +76,8 @@ fun MeterDetailScreen(
     onAddReading: () -> Unit,
     onViewGraph: () -> Unit,
     onViewLog: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onMarkSwitched: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -121,6 +125,20 @@ fun MeterDetailScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(24.dp))
+
+            val switchUrgency = uiState.switchUrgency
+            val switchByDate = uiState.switchByDate
+            val switchTargetMeterName = uiState.switchTargetMeterName
+            if (switchUrgency != null && switchByDate != null && switchTargetMeterName != null) {
+                SwitchRecommendationBanner(
+                    targetMeterName = switchTargetMeterName,
+                    switchByDate = switchByDate,
+                    urgency = switchUrgency,
+                    onMarkSwitched = onMarkSwitched,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             // Circular reading display
             ReadingGauge(
@@ -369,6 +387,56 @@ private fun ReadingGauge(
                 style = MaterialTheme.typography.titleMedium,
                 color = colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun SwitchRecommendationBanner(
+    targetMeterName: String,
+    switchByDate: java.time.LocalDate,
+    urgency: SwitchUrgency,
+    onMarkSwitched: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val (containerColor, contentColor) = when (urgency) {
+        SwitchUrgency.OVERDUE -> colorScheme.errorContainer to colorScheme.onErrorContainer
+        SwitchUrgency.SOON -> colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer
+        SwitchUrgency.NORMAL -> colorScheme.secondaryContainer to colorScheme.onSecondaryContainer
+    }
+    val formatter = remember { DateTimeFormatter.ofPattern("MMM d") }
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(
+                    id = R.string.switch_recommendation_text,
+                    targetMeterName,
+                    formatter.format(switchByDate)
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(
+                onClick = onMarkSwitched,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = contentColor,
+                    contentColor = containerColor
+                )
+            ) {
+                Text(text = stringResource(id = R.string.mark_switched))
+            }
         }
     }
 }

@@ -17,6 +17,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -40,8 +42,11 @@ class HistoryViewModel @Inject constructor(
         /**
          * CSV format version. Increment this constant when the CSV structure changes
          * to support backward compatibility in future imports.
+         * v2 (M10): added environment_name/safety_buffer_days reading columns and a trailing
+         * "# activations" section; v1 files remain readable (missing columns default as before).
          */
-        private const val CSV_FORMAT_VERSION = 1
+        private const val CSV_FORMAT_VERSION = 2
+        private const val ACTIVATIONS_SECTION_MARKER = "# activations"
     }
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -60,23 +65,34 @@ class HistoryViewModel @Inject constructor(
 
     private var billingAnchorDay: Int = 1
     private var thresholdsCsv: String = "200,300"
+    private var environmentName: String? = null
+    private var safetyBufferDays: Int = 3
+    private var activationHistorySnapshot: List<Pair<Long, Long?>> = emptyList()
 
     init {
         viewModelScope.launch {
-            repository.meterOverview(meterId).collect { overview ->
-                if (overview != null) {
-                    updateMeterConfig(
-                        anchorDay = overview.meter.billingAnchorDay,
-                        thresholds = overview.meter.thresholdsCsv
-                    )
-                    currentCycleStats = overview.cycleStats
-                    _uiState.value = _uiState.value.copy(
-                        meterName = overview.meter.name,
-                        cycle = overview.cycleStats.toCycleSummary()
-                    )
-                    applyFilterAndUpdate()
+            combine(
+                repository.meterOverview(meterId),
+                repository.environments,
+                repository.activationHistory(meterId)
+            ) { overview, environments, history -> Triple(overview, environments, history) }
+                .collect { (overview, environments, history) ->
+                    if (overview != null) {
+                        updateMeterConfig(
+                            anchorDay = overview.meter.billingAnchorDay,
+                            thresholds = overview.meter.thresholdsCsv
+                        )
+                        environmentName = environments.firstOrNull { it.id == overview.meter.environmentId }?.name
+                        safetyBufferDays = overview.meter.safetyBufferDays
+                        activationHistorySnapshot = history.map { it.startedAt to it.endedAt }
+                        currentCycleStats = overview.cycleStats
+                        _uiState.value = _uiState.value.copy(
+                            meterName = overview.meter.name,
+                            cycle = overview.cycleStats.toCycleSummary()
+                        )
+                        applyFilterAndUpdate()
+                    }
                 }
-            }
         }
 
         viewModelScope.launch {
@@ -181,13 +197,27 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val newReadings = mutableListOf<MeterReadingEntity>()
+                val importedActivations = mutableListOf<Pair<Long, Long?>>()
                 val reader = BufferedReader(StringReader(csv))
                 reader.readLine() // skip header if present
                 var importedAnchor = 1
                 var importedThresholds = "200,300"
+                var importedEnvironmentName: String? = null
+                var importedSafetyBufferDays: Int? = null
                 while (true) {
                     val line = reader.readLine() ?: break
-                    val parts = line.split(',')
+                    if (line.trim() == ACTIVATIONS_SECTION_MARKER) {
+                        reader.readLine() // skip activations header
+                        while (true) {
+                            val activationLine = reader.readLine() ?: break
+                            val activationParts = activationLine.split(',')
+                            val startedAt = activationParts.getOrNull(0)?.toLongOrNull() ?: continue
+                            val endedAt = activationParts.getOrNull(1)?.takeIf { it.isNotBlank() }?.toLongOrNull()
+                            importedActivations += startedAt to endedAt
+                        }
+                        break
+                    }
+                    val parts = splitCsvLine(line)
                     if (parts.size < 2) continue
                     val timestamp = parts[0].toLongOrNull()
                     val value = parts[1].toDoubleOrNull()
@@ -201,6 +231,14 @@ class HistoryViewModel @Inject constructor(
                         val trimmed = thresholds.trim()
                         if (trimmed.isNotEmpty()) {
                             importedThresholds = trimmed
+                        }
+                    }
+                    parts.getOrNull(5)?.trim()?.takeIf { it.isNotEmpty() }?.let { name ->
+                        importedEnvironmentName = name
+                    }
+                    parts.getOrNull(6)?.toIntOrNull()?.let { buffer ->
+                        if (buffer in MeterRepository.MIN_SAFETY_BUFFER_DAYS..MeterRepository.MAX_SAFETY_BUFFER_DAYS) {
+                            importedSafetyBufferDays = buffer
                         }
                     }
                     if (timestamp != null && value != null && value > 0.0) {
@@ -228,6 +266,17 @@ class HistoryViewModel @Inject constructor(
                         anchorDay = updated.billingAnchorDay,
                         thresholds = updated.thresholdsCsv
                     )
+                }
+                importedEnvironmentName?.let { name ->
+                    val existing = repository.environments.first().firstOrNull { it.name == name }
+                    val environmentId = existing?.id ?: repository.createEnvironment(name)
+                    repository.assignMeterToEnvironment(meterId, environmentId)
+                }
+                importedSafetyBufferDays?.let { buffer ->
+                    repository.updateSafetyBufferDays(meterId, buffer)
+                }
+                if (importedActivations.isNotEmpty()) {
+                    repository.restoreActivations(meterId, importedActivations)
                 }
                 _events.send(HistoryEvent.Imported(newReadings.size))
             } catch (e: Exception) {
@@ -293,13 +342,36 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
+     * Splits a CSV line on commas, treating double-quoted fields as a single token (so a
+     * comma-separated value like `thresholds_csv`, e.g. "200,300", doesn't shift later columns).
+     * Quote characters themselves are not included in the returned tokens.
+     */
+    private fun splitCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val current = StringBuilder()
+        var inQuotes = false
+        for (c in line) {
+            when {
+                c == '"' -> inQuotes = !inQuotes
+                c == ',' && !inQuotes -> {
+                    result += current.toString()
+                    current.clear()
+                }
+                else -> current.append(c)
+            }
+        }
+        result += current.toString()
+        return result
+    }
+
+    /**
      * Convert a list of readings into a CSV string. The first line is a header.
      * Uses CSV format version [CSV_FORMAT_VERSION].
      */
     private fun buildCsv(readings: List<HistoryReading>): String {
         val builder = StringBuilder()
-        builder.append("# version: 1\n")
-        builder.append("timestamp,value,notes,billing_anchor_day,thresholds\n")
+        builder.append("# version: $CSV_FORMAT_VERSION\n")
+        builder.append("timestamp,value,notes,billing_anchor_day,thresholds,environment_name,safety_buffer_days\n")
         readings.forEach { reading ->
             builder.append(reading.recordedAt.toEpochMilli())
                 .append(',')
@@ -309,8 +381,22 @@ class HistoryViewModel @Inject constructor(
                 .append(',')
                 .append(billingAnchorDay)
                 .append(',')
-                .append(thresholdsCsv)
+                .append('"').append(thresholdsCsv).append('"')
+                .append(',')
+                .append(environmentName ?: "")
+                .append(',')
+                .append(safetyBufferDays)
                 .append('\n')
+        }
+        if (activationHistorySnapshot.isNotEmpty()) {
+            builder.append(ACTIVATIONS_SECTION_MARKER).append('\n')
+            builder.append("started_at,ended_at\n")
+            activationHistorySnapshot.forEach { (startedAt, endedAt) ->
+                builder.append(startedAt)
+                    .append(',')
+                    .append(endedAt ?: "")
+                    .append('\n')
+            }
         }
         return builder.toString()
     }

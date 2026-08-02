@@ -12,9 +12,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MeterEntity::class,
         MeterReadingEntity::class,
         EnvironmentEntity::class,
-        MeterActivationEntity::class
+        MeterActivationEntity::class,
+        SwitchOutcomeEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class MeterDatabase : RoomDatabase() {
@@ -31,7 +32,7 @@ abstract class MeterDatabase : RoomDatabase() {
                     MeterDatabase::class.java,
                     "meter.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -72,6 +73,25 @@ abstract class MeterDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_meter_activations_meter_id` " +
                         "ON `meter_activations` (`meter_id`)"
+                )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `switch_outcomes` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`meter_id` INTEGER NOT NULL, " +
+                        "`recommended_date` INTEGER NOT NULL, " +
+                        "`actual_switch_date` INTEGER NOT NULL, " +
+                        "`units_at_switch` REAL NOT NULL, " +
+                        "`threshold_target` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`meter_id`) REFERENCES `meters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_switch_outcomes_meter_id` " +
+                        "ON `switch_outcomes` (`meter_id`)"
                 )
             }
         }

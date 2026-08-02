@@ -28,13 +28,8 @@ class HomeScreenTest {
                     onAddMeterClick = {},
                     onAddMeter = { _, _, _, _ -> },
                     onDismissAddMeter = {},
-                    onAddReadingClick = {},
-                    onAddReading = { _, _, _ -> },
-                    onDismissReading = {},
-                    onReminderChanged = { _, _, _, _, _ -> },
-                    onViewHistory = {},
-                    onDeleteMeter = {},
-                    onOpenSettings = {}
+                    onMeterClick = {},
+                    onOpenAppSettings = {}
                 )
             }
         }
@@ -44,41 +39,43 @@ class HomeScreenTest {
     }
 
     @Test
-    fun historyButton_invokesCallback() {
-        var clicked = false
+    fun meterListItem_click_invokesOnMeterClick() {
+        var clickedId: Long? = null
+        val meter = MeterItem(
+            id = 1,
+            name = "Home",
+            reminderEnabled = false,
+            reminderFrequencyDays = 30,
+            reminderHour = 9,
+            reminderMinute = 0,
+            latestReading = MeterReading(120.0, Instant.now(), null),
+            nextReminder = null,
+            cycle = CycleUiModel(
+                start = Instant.now(),
+                end = Instant.now().plusSeconds(2_592_000),
+                usedUnits = 0.0,
+                projectedUnits = 0.0,
+                ratePerDay = 0.0,
+                hasProjection = false,
+                nextThresholdValue = null,
+                nextThresholdDate = null
+            )
+        )
         composeRule.setContent {
             KwhTheme {
                 HomeScreen(
-                    uiState = HomeUiState(
-                        meters = listOf(
-                            MeterItem(
-                                id = 1,
-                                name = "Home",
-                                reminderEnabled = false,
-                                reminderFrequencyDays = 30,
-                                reminderHour = 9,
-                                reminderMinute = 0,
-                                latestReading = MeterReading(120.0, Instant.now(), null),
-                                nextReminder = null
-                            )
-                        )
-                    ),
+                    uiState = HomeUiState(ungroupedMeters = listOf(meter)),
                     snackbarHostState = SnackbarHostState(),
                     onAddMeterClick = {},
                     onAddMeter = { _, _, _, _ -> },
                     onDismissAddMeter = {},
-                    onAddReadingClick = {},
-                    onAddReading = { _, _, _ -> },
-                    onDismissReading = {},
-                    onReminderChanged = { _, _, _, _, _ -> },
-                    onViewHistory = { clicked = true },
-                    onDeleteMeter = {},
-                    onOpenSettings = {}
+                    onMeterClick = { clickedId = it },
+                    onOpenAppSettings = {}
                 )
             }
         }
 
-        composeRule.onNodeWithText("History").performClick()
-        assert(clicked)
+        composeRule.onNodeWithText("Home").performClick()
+        assert(clickedId == 1L)
     }
 }

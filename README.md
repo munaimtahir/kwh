@@ -45,6 +45,23 @@ app/
 
 4. Open the project in Android Studio to run on a device or emulator.
 
+### Release builds
+
+`./gradlew assembleRelease` / `bundleRelease` produce a real, signed, R8-minified artifact only
+when a `keystore.properties` file (gitignored — never commit it or the `.jks`) exists at the repo
+root with:
+
+```properties
+storeFile=release-keystore.jks
+storePassword=...
+keyAlias=kwh-release
+keyPassword=...
+```
+
+Without it, release builds fall back to debug signing (fine for local testing, **not** for Play
+Store upload). Back up the keystore and its password somewhere outside this repo — losing them
+means the app can never be updated post-launch (unless enrolled in Play App Signing).
+
 ## Reminders
 
 Reminders are delivered via WorkManager. When a reminder is enabled for a meter, the app schedules a one-time work request at the next desired time and reschedules after every execution.

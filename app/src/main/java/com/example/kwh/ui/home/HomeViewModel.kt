@@ -3,8 +3,11 @@ package com.example.kwh.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kwh.R
+import com.example.kwh.billing.SwitchUrgency
+import com.example.kwh.repository.EnvironmentOverview
 import com.example.kwh.repository.MeterOverview
 import com.example.kwh.reminders.ReminderScheduler
+import com.example.kwh.reminders.SwitchReminderScheduler
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.ui.common.StringResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +18,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -23,6 +27,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: MeterRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val switchReminderScheduler: SwitchReminderScheduler,
     private val stringResolver: StringResolver
 ) : ViewModel() {
 
@@ -34,10 +39,39 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.meterOverviews.collectLatest { meters ->
-                _uiState.value = _uiState.value.copy(
-                    meters = meters.map { it.toMeterItem() }
-                )
+            combine(
+                repository.environmentOverviews,
+                repository.ungroupedMeterOverviews
+            ) { environments, ungrouped -> environments to ungrouped }
+                .collectLatest { (environments, ungrouped) ->
+                    _uiState.value = _uiState.value.copy(
+                        environmentGroups = environments.map { it.toGroupUiModel() },
+                        ungroupedMeters = ungrouped.map { it.toMeterItem() }
+                    )
+                }
+        }
+    }
+
+    fun activateMeter(meterId: Long) {
+        viewModelScope.launch {
+            runCatching {
+                repository.activateMeter(meterId)
+            }.onSuccess { activated ->
+                if (activated?.environmentId != null) {
+                    rescheduleSwitchChecks(activated.environmentId, activatedMeterId = activated.id)
+                }
+            }.onFailure { throwable ->
+                emitError(throwable.message ?: stringResolver.get(R.string.error_activating_meter))
+            }
+        }
+    }
+
+    private suspend fun rescheduleSwitchChecks(environmentId: Long, activatedMeterId: Long) {
+        repository.metersInEnvironment(environmentId).forEach { sibling ->
+            if (sibling.id == activatedMeterId) {
+                switchReminderScheduler.scheduleImmediateCheck(sibling.id, sibling.name)
+            } else {
+                switchReminderScheduler.cancelCheck(sibling.id)
             }
         }
     }
@@ -132,6 +166,7 @@ class HomeViewModel @Inject constructor(
             }.onSuccess { deleted ->
                 if (deleted) {
                     reminderScheduler.disableReminder(meterId)
+                    switchReminderScheduler.cancelCheck(meterId)
                 } else {
                     emitError(stringResolver.get(R.string.error_deleting_meter))
                 }
@@ -139,6 +174,27 @@ class HomeViewModel @Inject constructor(
                 emitError(throwable.message ?: stringResolver.get(R.string.error_deleting_meter))
             }
         }
+    }
+
+    private fun EnvironmentOverview.toGroupUiModel(): EnvironmentGroupUiModel {
+        val targetName = switchTargetMeterId?.let { id -> meters.firstOrNull { it.meter.id == id }?.meter?.name }
+        val recommendation = if (switchRecommendation != null && switchTargetMeterId != null && targetName != null) {
+            SwitchRecommendationUiModel(
+                targetMeterId = switchTargetMeterId,
+                targetMeterName = targetName,
+                switchByDate = switchRecommendation.switchByDate,
+                urgency = switchRecommendation.urgency
+            )
+        } else {
+            null
+        }
+        return EnvironmentGroupUiModel(
+            id = environment.id,
+            name = environment.name,
+            meters = meters.map { it.toMeterItem() },
+            activeMeterId = activeMeterId,
+            switchRecommendation = recommendation
+        )
     }
 
     private fun MeterOverview.toMeterItem(): MeterItem {
@@ -187,10 +243,29 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
-    val meters: List<MeterItem> = emptyList(),
+    val environmentGroups: List<EnvironmentGroupUiModel> = emptyList(),
+    val ungroupedMeters: List<MeterItem> = emptyList(),
     val showAddMeterDialog: Boolean = false,
     val showAddReadingDialog: Boolean = false,
     val meterIdForReading: Long? = null
+) {
+    val isEmpty: Boolean
+        get() = environmentGroups.isEmpty() && ungroupedMeters.isEmpty()
+}
+
+data class EnvironmentGroupUiModel(
+    val id: Long,
+    val name: String,
+    val meters: List<MeterItem>,
+    val activeMeterId: Long?,
+    val switchRecommendation: SwitchRecommendationUiModel? = null
+)
+
+data class SwitchRecommendationUiModel(
+    val targetMeterId: Long,
+    val targetMeterName: String,
+    val switchByDate: LocalDate,
+    val urgency: SwitchUrgency
 )
 
 data class MeterItem(

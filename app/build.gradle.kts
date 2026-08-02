@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,16 +8,27 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+// Release signing credentials live in keystore.properties (gitignored, never committed).
+// Falls back to debug signing when absent (e.g. CI/contributor checkouts without the file)
+// so `assembleRelease`/`bundleRelease` keep working everywhere; only a build with the real
+// keystore.properties present produces a Play-Store-signable artifact.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
+}
+
 android {
     namespace = "com.example.kwh"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.kwh"
+        applicationId = "com.vexel.kwh"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        targetSdk = 36
+        versionCode = 3
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "com.example.kwh.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -24,20 +38,30 @@ android {
         getByName("debug") {
             // Debug signing config is auto-configured by Android SDK
         }
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
     }
 
     buildTypes {
         debug { isMinifyEnabled = false }
         release {
-            isMinifyEnabled = false
-            // Sign release builds with debug key for easy installation
-            // For production, replace with a proper release keystore
-            signingConfig = signingConfigs.getByName("debug")
-            // If/when you enable shrinking/obfuscation:
-            // proguardFiles(
-            //     getDefaultProguardFile("proguard-android-optimize.txt"),
-            //     "proguard-rules.pro"
-            // )
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 

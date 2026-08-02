@@ -5,6 +5,7 @@ import com.example.kwh.billing.DefaultBillingCycleCalculator
 import com.example.kwh.data.MeterEntity
 import com.example.kwh.repository.MeterRepository
 import com.example.kwh.reminders.ReminderScheduler
+import com.example.kwh.reminders.SwitchReminderScheduler
 import com.example.kwh.settings.SnoozePreferenceReader
 import com.example.kwh.testing.FakeMeterDao
 import com.example.kwh.testing.MainDispatcherRule
@@ -30,6 +31,7 @@ class HomeViewModelTest {
 
     private lateinit var repository: MeterRepository
     private lateinit var scheduler: RecordingScheduler
+    private lateinit var switchScheduler: RecordingSwitchScheduler
     private lateinit var viewModel: HomeViewModel
     private val clock: Clock = Clock.fixed(Instant.parse("2024-03-20T00:00:00Z"), ZoneOffset.UTC)
 
@@ -38,9 +40,11 @@ class HomeViewModelTest {
         val dao = FakeMeterDao()
         repository = MeterRepository(dao, clock, DefaultBillingCycleCalculator())
         scheduler = RecordingScheduler(Application(), FakeSnoozePreferenceReader())
+        switchScheduler = RecordingSwitchScheduler(Application())
         viewModel = HomeViewModel(
             repository = repository,
             reminderScheduler = scheduler,
+            switchReminderScheduler = switchScheduler,
             stringResolver = FakeStringResolver()
         )
     }
@@ -62,6 +66,21 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun environmentGroups_separateFromUngroupedMeters() = runTest {
+        val envId = repository.createEnvironment("House")
+        val groupedId = repository.addMeter("Grouped", 30, 9, 0)
+        repository.assignMeterToEnvironment(groupedId, envId)
+        repository.addMeter("Solo", 30, 9, 0)
+        repository.activateMeter(groupedId)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.environmentGroups.single().meters.single().id == groupedId)
+        assertTrue(state.environmentGroups.single().activeMeterId == groupedId)
+        assertTrue(state.ungroupedMeters.single().name == "Solo")
+    }
+
+    @Test
     fun deleteMeter_disablesReminder() = runTest {
         val meterId = repository.addMeter("Home", 30, 9, 0)
         scheduler.enabledMeters.clear()
@@ -70,6 +89,40 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertTrue(scheduler.disabledMeters.contains(meterId))
+    }
+
+    @Test
+    fun activateMeter_schedulesCheckForActivatedMeterOnly() = runTest {
+        val envId = repository.createEnvironment("House")
+        val meterAId = repository.addMeter("Meter A", 30, 9, 0)
+        val meterBId = repository.addMeter("Meter B", 30, 9, 0)
+        repository.assignMeterToEnvironment(meterAId, envId)
+        repository.assignMeterToEnvironment(meterBId, envId)
+        viewModel.activateMeter(meterAId)
+        advanceUntilIdle()
+        switchScheduler.scheduled.clear()
+        switchScheduler.cancelled.clear()
+
+        viewModel.activateMeter(meterBId)
+        advanceUntilIdle()
+
+        assertTrue(switchScheduler.scheduled.contains(meterBId))
+        assertTrue(switchScheduler.cancelled.contains(meterAId))
+    }
+
+    private class RecordingSwitchScheduler(
+        context: android.content.Context
+    ) : com.example.kwh.reminders.SwitchReminderScheduler(context) {
+        val scheduled = mutableListOf<Long>()
+        val cancelled = mutableListOf<Long>()
+
+        override fun scheduleImmediateCheck(meterId: Long, meterName: String) {
+            scheduled.add(meterId)
+        }
+
+        override fun cancelCheck(meterId: Long) {
+            cancelled.add(meterId)
+        }
     }
 
     private class RecordingScheduler(

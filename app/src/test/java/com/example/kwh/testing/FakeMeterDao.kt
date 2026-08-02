@@ -6,6 +6,7 @@ import com.example.kwh.data.MeterDao
 import com.example.kwh.data.MeterEntity
 import com.example.kwh.data.MeterReadingEntity
 import com.example.kwh.data.MeterWithReadings
+import com.example.kwh.data.SwitchOutcomeEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -18,11 +19,13 @@ class FakeMeterDao : MeterDao {
     private val readings = mutableListOf<MeterReadingEntity>()
     private val environments = mutableListOf<EnvironmentEntity>()
     private val activations = mutableListOf<MeterActivationEntity>()
+    private val switchOutcomes = mutableListOf<SwitchOutcomeEntity>()
     private val updateSignal = MutableStateFlow(0L)
     private var nextMeterId = 1L
     private var nextReadingId = 1L
     private var nextEnvironmentId = 1L
     private var nextActivationId = 1L
+    private var nextSwitchOutcomeId = 1L
 
     override fun observeMetersWithReadings(): Flow<List<MeterWithReadings>> {
         return updateSignal.map { buildMetersWithReadings() }
@@ -107,6 +110,8 @@ class FakeMeterDao : MeterDao {
         val removed = meters.removeIf { it.id == meter.id }
         if (removed) {
             readings.removeAll { it.meterId == meter.id }
+            activations.removeAll { it.meterId == meter.id }
+            switchOutcomes.removeAll { it.meterId == meter.id }
             notifyObservers()
         }
     }
@@ -137,6 +142,10 @@ class FakeMeterDao : MeterDao {
 
     override suspend fun getEnvironmentById(environmentId: Long): EnvironmentEntity? {
         return environments.find { it.id == environmentId }
+    }
+
+    override suspend fun getMetersForEnvironment(environmentId: Long): List<MeterEntity> {
+        return meters.filter { it.environmentId == environmentId }
     }
 
     override suspend fun insertEnvironment(environment: EnvironmentEntity): Long {
@@ -203,9 +212,50 @@ class FakeMeterDao : MeterDao {
         return meters.find { it.environmentId == environmentId && it.id in activeMeterIds }
     }
 
+    override suspend fun getOpenActivationsForEnvironment(
+        environmentId: Long
+    ): List<MeterActivationEntity> {
+        val meterIds = meters.filter { it.environmentId == environmentId }.map { it.id }.toSet()
+        return activations.filter { it.meterId in meterIds && it.endedAt == null }
+    }
+
+    override fun observeActiveActivations(): Flow<List<MeterActivationEntity>> {
+        return updateSignal.map { activations.filter { activation -> activation.endedAt == null } }
+    }
+
+    override fun observeAllActivations(): Flow<List<MeterActivationEntity>> {
+        return updateSignal.map { activations.toList() }
+    }
+
+    override suspend fun getActivationsForMeter(meterId: Long): List<MeterActivationEntity> {
+        return activations.filter { it.meterId == meterId }
+    }
+
     override fun observeActivationHistory(meterId: Long): Flow<List<MeterActivationEntity>> {
         return updateSignal.map {
             activations.filter { it.meterId == meterId }.sortedByDescending { a -> a.startedAt }
+        }
+    }
+
+    override suspend fun insertSwitchOutcome(outcome: SwitchOutcomeEntity): Long {
+        val assignedId = if (outcome.id == 0L) nextSwitchOutcomeId++ else outcome.id
+        val entity = outcome.copy(id = assignedId)
+        switchOutcomes.removeAll { it.id == assignedId }
+        switchOutcomes.add(entity)
+        notifyObservers()
+        return assignedId
+    }
+
+    override suspend fun getRecentSwitchOutcomes(meterId: Long, limit: Int): List<SwitchOutcomeEntity> {
+        return switchOutcomes
+            .filter { it.meterId == meterId }
+            .sortedByDescending { it.actualSwitchDate }
+            .take(limit)
+    }
+
+    override fun observeSwitchOutcomes(meterId: Long): Flow<List<SwitchOutcomeEntity>> {
+        return updateSignal.map {
+            switchOutcomes.filter { it.meterId == meterId }.sortedByDescending { o -> o.actualSwitchDate }
         }
     }
 

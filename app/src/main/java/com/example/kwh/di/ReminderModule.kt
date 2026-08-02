@@ -2,6 +2,7 @@ package com.example.kwh.di
 
 import android.content.Context
 import com.example.kwh.reminders.ReminderScheduler
+import com.example.kwh.reminders.SwitchReminderScheduler
 import com.example.kwh.settings.SnoozePreferenceReader
 import dagger.Module
 import dagger.Provides
@@ -21,5 +22,13 @@ object ReminderModule {
         snoozePreferenceReader: SnoozePreferenceReader
     ): ReminderScheduler {
         return ReminderScheduler(context, snoozePreferenceReader)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSwitchReminderScheduler(
+        @ApplicationContext context: Context
+    ): SwitchReminderScheduler {
+        return SwitchReminderScheduler(context)
     }
 }

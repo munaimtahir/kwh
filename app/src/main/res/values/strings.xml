@@ -111,4 +111,34 @@
     <string name="meter_settings_delete_confirm">Are you sure you want to delete this meter? All readings will be permanently lost.</string>
     <string name="meter_settings_danger_zone">Danger Zone</string>
     <string name="meter_settings_delete_button">Delete Meter</string>
+
+    <!-- Environment switching -->
+    <string name="ungrouped_meters">Ungrouped</string>
+    <string name="active_meter_label">Active</string>
+    <string name="set_as_active_meter">Set as active</string>
+    <string name="error_activating_meter">Failed to activate meter</string>
+    <string name="meter_settings_environment_section">Environment</string>
+    <string name="meter_settings_change_environment">Change</string>
+    <string name="meter_settings_no_environment">Not part of an environment</string>
+    <string name="meter_settings_new_environment_label">New environment name</string>
+    <string name="meter_settings_create_environment">Create &amp; assign</string>
+    <string name="meter_settings_unassign_environment">Remove from environment</string>
+    <string name="meter_settings_activate_meter">Set as active meter</string>
+    <string name="meter_settings_already_active">This meter is currently active</string>
+    <string name="meter_settings_activation_history">Activation history</string>
+    <string name="meter_settings_no_activation_history">No activations recorded yet</string>
+    <string name="meter_settings_activation_ongoing">ongoing</string>
+    <string name="error_environment_name_blank">Environment name cannot be blank</string>
+    <string name="switch_recommendation_text">Switch to %1$s by %2$s</string>
+    <string name="mark_switched">Mark switched</string>
+    <string name="switch_notification_title_soon">Time to switch meters soon</string>
+    <string name="switch_notification_title_overdue">Switch meters now</string>
+    <string name="switch_notification_body">Switch off %1$s by %2$s to stay under your slab threshold</string>
+    <string name="meter_settings_safety_buffer_label">Safety buffer (days)</string>
+    <string name="meter_settings_safety_buffer_error">Safety buffer must be between 1 and 10 days</string>
+    <string name="meter_settings_accuracy_title">Switch accuracy</string>
+    <string name="meter_settings_accuracy_days_early">Switches %1$.1f days early on average</string>
+    <string name="meter_settings_accuracy_days_late">Switches %1$.1f days late on average</string>
+    <string name="meter_settings_accuracy_margin">%1$.1f units of margin to spare on average</string>
+    <string name="meter_settings_accuracy_sample_size">Based on the last %1$d switch(es)</string>
 </resources>

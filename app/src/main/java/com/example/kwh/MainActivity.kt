@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +63,9 @@ class MainActivity : ComponentActivity() {
     /** The shared home view model instance used across screens. */
     private val homeViewModel: HomeViewModel by viewModels()
 
+    /** Read here (in addition to the Settings screen) so the app theme follows the user's choice. */
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     private var pendingReminderRequest: ReminderRequest? = null
 
     private val notificationPermissionLauncher =
@@ -93,8 +97,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            KwhTheme {
+            val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+            KwhTheme(useDarkTheme = settingsState.darkTheme) {
                 val navController = rememberNavController()
                 val snackbarHostState = remember { SnackbarHostState() }
                 val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
@@ -128,6 +134,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenAppSettings = {
                                 navController.navigate("settings")
+                            },
+                            onActivateMeter = { meterId ->
+                                homeViewModel.activateMeter(meterId)
                             }
                         )
                     }
@@ -153,6 +162,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenSettings = {
                                 navController.navigate("meterSettings/$meterId")
+                            },
+                            onMarkSwitched = {
+                                meterDetailViewModel.markSwitched()
                             }
                         )
                     }

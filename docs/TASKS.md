@@ -43,27 +43,27 @@ Spec: `docs/ENVIRONMENT_SWITCHING_SPEC.md` — Process: `docs/AGENT_ENVIRONMENT_
 - [x] Migration test + DAO round-trip tests
 
 ## M7 — Environments & Manual Activation
-- [ ] Repository: create/rename/delete environment; assign/unassign meter
-- [ ] Repository: `activateMeter()` (closes prior open activation, opens new one), `getActiveMeter()`, `activationHistory()`
-- [ ] Home screen: group by environment + "Ungrouped" bucket; active-meter indicator
-- [ ] Meter Settings: environment assignment + activation history view
-- [ ] Repository/ViewModel tests for activation transitions (idempotency, re-activation)
+- [x] Repository: create/rename/delete environment; assign/unassign meter
+- [x] Repository: `activateMeter()` (closes prior open activation, opens new one), `getActiveMeter()`, `activationHistory()`
+- [x] Home screen: group by environment + "Ungrouped" bucket; active-meter indicator
+- [x] Meter Settings: environment assignment + activation history view
+- [x] Repository/ViewModel tests for activation transitions (idempotency, re-activation)
 
 ## M8 — Switch Recommendation Engine
-- [ ] Active-day-weighted rate calculation (activation-log aware)
-- [ ] `SwitchAdvisor` domain class (switchByDate + urgency from threshold ETA + safety buffer)
-- [ ] Recommendation banner (Home + Meter Detail) with "Mark switched" action
-- [ ] Switch-reminder notification (new WorkManager worker, reusing existing pattern)
-- [ ] Unit tests: rate math with gaps; `SwitchAdvisor` combinations incl. zero-rate/overdue
+- [x] Active-day-weighted rate calculation (activation-log aware)
+- [x] `SwitchAdvisor` domain class (switchByDate + urgency from threshold ETA + safety buffer)
+- [x] Recommendation banner (Home + Meter Detail) with "Mark switched" action
+- [x] Switch-reminder notification (new WorkManager worker, reusing existing pattern)
+- [x] Unit tests: rate math with gaps; `SwitchAdvisor` combinations incl. zero-rate/overdue
 
 ## M9 — Adaptive Calibration
-- [ ] `SwitchOutcomeEntity` + logging on each switch
-- [ ] Rolling-error calculation; bounded auto-adjustment of `safety_buffer_days`
-- [ ] Accuracy indicator in settings UI
-- [ ] Calibration convergence tests (synthetic switch histories)
+- [x] `SwitchOutcomeEntity` + logging on each switch
+- [x] Rolling-error calculation; bounded auto-adjustment of `safety_buffer_days`
+- [x] Accuracy indicator in settings UI
+- [x] Calibration convergence tests (synthetic switch histories)
 
 ## M10 — Polish & Release
-- [ ] CSV export/import: environment + activation log fields
-- [ ] Update `DataModel.md` / `Architecture.md` / `ALGORITHMS.md`
-- [ ] Full regression pass + QA checklist re-run
-- [ ] Version bump + changelog entry
+- [x] CSV export/import: environment + activation log fields
+- [x] Update `DataModel.md` / `Architecture.md` / `ALGORITHMS.md`
+- [x] Full regression pass + QA checklist re-run
+- [x] Version bump + changelog entry

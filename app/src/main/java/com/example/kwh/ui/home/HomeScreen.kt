@@ -50,7 +50,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Surface
 import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import com.example.kwh.R
+import com.example.kwh.billing.SwitchUrgency
 import com.example.kwh.ui.components.NumberField
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,7 +69,8 @@ fun HomeScreen(
     onDismissAddMeter: () -> Unit,
     onMeterClick: (Long) -> Unit,
     onOpenAppSettings: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onActivateMeter: (Long) -> Unit = {}
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -90,7 +94,7 @@ fun HomeScreen(
             }
         }
     ) { padding ->
-        if (uiState.meters.isEmpty()) {
+        if (uiState.isEmpty) {
             EmptyState(
                 modifier = Modifier
                     .padding(padding)
@@ -104,11 +108,41 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(uiState.meters, key = { it.id }) { meter ->
-                    MeterListItem(
-                        meter = meter,
-                        onClick = { onMeterClick(meter.id) }
-                    )
+                uiState.environmentGroups.forEach { group ->
+                    item(key = "env-header-${group.id}") {
+                        EnvironmentHeader(name = group.name)
+                    }
+                    group.switchRecommendation?.let { recommendation ->
+                        item(key = "env-recommendation-${group.id}") {
+                            SwitchRecommendationBanner(
+                                recommendation = recommendation,
+                                onMarkSwitched = { onActivateMeter(recommendation.targetMeterId) }
+                            )
+                        }
+                    }
+                    items(group.meters, key = { it.id }) { meter ->
+                        MeterListItem(
+                            meter = meter,
+                            isActive = meter.id == group.activeMeterId,
+                            onClick = { onMeterClick(meter.id) },
+                            onActivate = { onActivateMeter(meter.id) }
+                        )
+                    }
+                }
+                if (uiState.ungroupedMeters.isNotEmpty()) {
+                    if (uiState.environmentGroups.isNotEmpty()) {
+                        item(key = "ungrouped-header") {
+                            EnvironmentHeader(name = stringResource(id = R.string.ungrouped_meters))
+                        }
+                    }
+                    items(uiState.ungroupedMeters, key = { it.id }) { meter ->
+                        MeterListItem(
+                            meter = meter,
+                            isActive = false,
+                            onClick = { onMeterClick(meter.id) },
+                            onActivate = null
+                        )
+                    }
                 }
             }
         }
@@ -179,9 +213,69 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun EnvironmentHeader(name: String, modifier: Modifier = Modifier) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(top = 4.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun SwitchRecommendationBanner(
+    recommendation: SwitchRecommendationUiModel,
+    onMarkSwitched: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val (containerColor, contentColor) = when (recommendation.urgency) {
+        SwitchUrgency.OVERDUE -> colorScheme.errorContainer to colorScheme.onErrorContainer
+        SwitchUrgency.SOON -> colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer
+        SwitchUrgency.NORMAL -> colorScheme.secondaryContainer to colorScheme.onSecondaryContainer
+    }
+    val formatter = remember { DateTimeFormatter.ofPattern("MMM d") }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(
+                        id = R.string.switch_recommendation_text,
+                        recommendation.targetMeterName,
+                        formatter.format(recommendation.switchByDate)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(
+                onClick = onMarkSwitched,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = contentColor,
+                    contentColor = containerColor
+                )
+            ) {
+                Text(text = stringResource(id = R.string.mark_switched))
+            }
+        }
+    }
+}
+
+@Composable
 private fun MeterListItem(
     meter: MeterItem,
-    onClick: () -> Unit
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onActivate: (() -> Unit)?
 ) {
     Surface(
         modifier = Modifier
@@ -218,12 +312,28 @@ private fun MeterListItem(
 
             // Meter info
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = meter.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = meter.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (isActive) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.active_meter_label),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -242,6 +352,12 @@ private fun MeterListItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                if (onActivate != null && !isActive) {
+                    TextButton(onClick = onActivate, contentPadding = PaddingValues(0.dp)) {
+                        Text(text = stringResource(id = R.string.set_as_active_meter))
+                    }
+                }
             }
 
             // Chevron
