@@ -62,6 +62,15 @@ Without it, release builds fall back to debug signing (fine for local testing, *
 Store upload). Back up the keystore and its password somewhere outside this repo — losing them
 means the app can never be updated post-launch (unless enrolled in Play App Signing).
 
+The CI release workflow (`.github/workflows/android.yml.disabled`) is currently disabled because
+this repo has no keystore secrets configured — build release artifacts locally instead. See the
+comment at the top of that file for what's needed to re-enable it.
+
+## Store listing
+
+Play Console submission assets (privacy policy, descriptions, feature graphic/screenshots specs,
+Data Safety draft) live in [`store-assets/`](store-assets/README.md).
+
 ## Reminders
 
 Reminders are delivered via WorkManager. When a reminder is enabled for a meter, the app schedules a one-time work request at the next desired time and reschedules after every execution.

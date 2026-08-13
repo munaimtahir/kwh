@@ -1,3 +1,13 @@
+# DISABLED: this workflow is not picked up by GitHub Actions because it lacks the
+# .yml/.yaml extension (renamed from android.yml). Reason: this repo's checkout has no
+# keystore secrets configured, so a CI-triggered assembleRelease/bundleRelease silently
+# falls back to DEBUG signing (see app/build.gradle.kts) instead of failing loudly —
+# producing an artifact that looks release-ready but can't be uploaded to Play Console.
+#
+# To re-enable: add the release keystore + credentials as repo secrets, wire them into
+# a generated keystore.properties (or pass via -P/env) in the steps below, rename this
+# file back to android.yml, and verify the produced APK is release-signed (e.g. via
+# `apksigner verify --print-certs`) before trusting CI output for a Play Store upload.
 name: Android Release Build
 
 on:

@@ -1,0 +1,1 @@
+Log electricity meter readings offline, track usage per billing cycle, and get reading reminders.

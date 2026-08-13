@@ -1,0 +1,23 @@
+Kwh Logger is a simple, offline electricity meter logbook for homes, offices, or labs that run
+one or more meters.
+
+WHAT YOU CAN DO
+- Create one or more meters (e.g. "Home Main", "Clinic Lab").
+- Add readings with an optional note whenever you check the meter.
+- See each meter's latest reading at a glance, plus history and a trend chart.
+- Set a reminder (frequency + time) so you never forget to log a reading; snooze reminders from
+  the notification itself.
+- Export your readings to CSV to back up or share your data — no cloud account needed.
+- Group meters into an "environment" if your household switches load between multiple
+  connections to manage billing-slab thresholds; the app tracks which meter is active and
+  recommends when to switch to the next one before you cross a threshold.
+
+WHY IT'S DIFFERENT
+- 100% offline. All data stays on your device — no accounts, no analytics, no network access.
+- No ads.
+- Designed around slab/tiered electricity billing, where knowing your cycle usage rate before the
+  billing cutoff actually matters.
+
+WHO IT'S FOR
+Anyone who wants a straightforward, private meter log with gentle reminders — not a smart-meter
+integration, just a fast way to record numbers and understand your usage trend.
