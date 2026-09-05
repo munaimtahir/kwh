@@ -205,7 +205,7 @@ class HistoryViewModel @Inject constructor(
                 var importedEnvironmentName: String? = null
                 var importedSafetyBufferDays: Int? = null
                 while (true) {
-                    val line = reader.readLine() ?: break
+                    val line = readCsvRecord(reader) ?: break
                     if (line.trim() == ACTIVATIONS_SECTION_MARKER) {
                         reader.readLine() // skip activations header
                         while (true) {
@@ -221,6 +221,8 @@ class HistoryViewModel @Inject constructor(
                     if (parts.size < 2) continue
                     val timestamp = parts[0].toLongOrNull()
                     val value = parts[1].toDoubleOrNull()
+                    // Headers and malformed rows must not overwrite imported meter metadata.
+                    if (timestamp == null || value == null || value <= 0.0) continue
                     val notes = parts.getOrNull(2)?.takeIf { it.isNotBlank() }
                     parts.getOrNull(3)?.toIntOrNull()?.let { anchor ->
                         if (anchor in 1..31) {
@@ -350,8 +352,14 @@ class HistoryViewModel @Inject constructor(
         val result = mutableListOf<String>()
         val current = StringBuilder()
         var inQuotes = false
-        for (c in line) {
+        var index = 0
+        while (index < line.length) {
+            val c = line[index]
             when {
+                c == '"' && inQuotes && line.getOrNull(index + 1) == '"' -> {
+                    current.append('"')
+                    index++
+                }
                 c == '"' -> inQuotes = !inQuotes
                 c == ',' && !inQuotes -> {
                     result += current.toString()
@@ -359,10 +367,26 @@ class HistoryViewModel @Inject constructor(
                 }
                 else -> current.append(c)
             }
+            index++
         }
         result += current.toString()
         return result
     }
+
+    private fun readCsvRecord(reader: BufferedReader): String? {
+        val record = StringBuilder(reader.readLine() ?: return null)
+        // Escaped quotes occur in pairs, so only odd parity means an open quoted field.
+        while (record.count { it == '"' } % 2 != 0) {
+            val continuation = reader.readLine() ?: break
+            record.append('\n').append(continuation)
+        }
+        return record.toString()
+    }
+
+    private fun csvField(value: String): String =
+        if (value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }) {
+            "\"${value.replace("\"", "\"\"")}\""
+        } else value
 
     /**
      * Convert a list of readings into a CSV string. The first line is a header.
@@ -377,13 +401,13 @@ class HistoryViewModel @Inject constructor(
                 .append(',')
                 .append(reading.value)
                 .append(',')
-                .append(reading.notes ?: "")
+                .append(csvField(reading.notes ?: ""))
                 .append(',')
                 .append(billingAnchorDay)
                 .append(',')
                 .append('"').append(thresholdsCsv).append('"')
                 .append(',')
-                .append(environmentName ?: "")
+                .append(csvField(environmentName ?: ""))
                 .append(',')
                 .append(safetyBufferDays)
                 .append('\n')

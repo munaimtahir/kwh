@@ -184,7 +184,12 @@ class MeterRepositoryEnvironmentTest {
             MeterEntity(name = "Meter A", billingAnchorDay = 1, thresholdsCsv = "50", environmentId = envId)
         )
         val meterBId = dao.insertMeter(MeterEntity(name = "Meter B", environmentId = envId))
-        dao.insertReading(reading(meterAId, "2024-03-01", 0.0))
+        val meterCId = dao.insertMeter(MeterEntity(name = "Meter C", environmentId = envId))
+        dao.insertReading(reading(meterBId, "2024-02-26", 100.0))
+        dao.insertReading(reading(meterBId, "2024-03-25", 110.0))
+        dao.insertReading(reading(meterCId, "2024-02-26", 100.0))
+        dao.insertReading(reading(meterCId, "2024-03-25", 120.0))
+        dao.insertReading(reading(meterAId, "2024-02-26", 0.0))
         dao.insertReading(reading(meterAId, "2024-03-25", 48.0))
         repository.activateMeter(meterAId)
 
@@ -193,6 +198,13 @@ class MeterRepositoryEnvironmentTest {
         assertNotNull(overview.switchRecommendation)
         assertEquals(SwitchUrgency.OVERDUE, overview.switchRecommendation?.urgency)
         assertEquals(meterBId, overview.switchTargetMeterId)
+        val recommendation = overview.switchRecommendation!!
+        assertEquals(LocalDate.parse("2024-03-23"), recommendation.switchByDate)
+        repository.activateMeter(meterBId)
+        val outcome = repository.switchOutcomes(meterAId).first().single()
+        assertEquals(48.0, outcome.unitsAtSwitch)
+        assertEquals(50, outcome.thresholdTarget)
+        assertEquals(millisOf("2024-03-23"), outcome.recommendedDate)
     }
 
     @Test

@@ -8,9 +8,31 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 @Dao
 interface MeterDao {
+    /** Validate and insert atomically, including concurrent Save submissions. Restores retain history. */
+    @Transaction
+    suspend fun insertValidatedReading(reading: MeterReadingEntity, dayStart: Long, dayEnd: Long): Long {
+        val readings = observeReadingsForMeter(reading.meterId).first()
+        require(readings.none {
+            it.recordedAt in dayStart until dayEnd && it.value == reading.value
+        }) { "This meter already has the same reading on this date. Cancel or correct the entry." }
+        require(readings.none { it.recordedAt == reading.recordedAt }) {
+            "This meter already has a reading at this time. Cancel or correct the entry."
+        }
+        val previous = readings.filter { it.recordedAt < reading.recordedAt }.maxByOrNull { it.recordedAt }
+        val next = readings.filter { it.recordedAt > reading.recordedAt }.minByOrNull { it.recordedAt }
+        require(previous == null || reading.value >= previous.value) {
+            "This reading is lower than the previous meter reading.\n\nPrevious: ${previous?.value}\nNew: ${reading.value}\n\nCheck the reading. A lower value may indicate a typing error, meter reset, or meter replacement. Cancel or correct the entry."
+        }
+        require(next == null || reading.value <= next.value) {
+            "This reading is higher than the next meter reading.\n\nNew: ${reading.value}\nNext: ${next?.value}\n\nCheck the value and date. Cancel or correct the entry."
+        }
+        return insertReading(reading)
+    }
+
     @Transaction
     @Query("SELECT * FROM meters ORDER BY name ASC")
     fun observeMetersWithReadings(): Flow<List<MeterWithReadings>>

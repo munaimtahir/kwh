@@ -31,12 +31,12 @@ class MeterRepositoryCycleStatsTest {
     }
 
     @Test
-    fun `baseline uses earliest reading within window`() = runTest {
+    fun `baseline prefers carry forward with multiple current readings`() = runTest {
         val meterId = dao.insertMeter(
             MeterEntity(name = "Home", billingAnchorDay = 15, thresholdsCsv = "50,80")
         )
-        dao.insertReading(reading(meterId, "2024-03-10", 100.0))
-        val baselineId = dao.insertReading(reading(meterId, "2024-03-16", 110.0))
+        val baselineId = dao.insertReading(reading(meterId, "2024-03-10", 100.0))
+        dao.insertReading(reading(meterId, "2024-03-16", 110.0))
         val latestId = dao.insertReading(reading(meterId, "2024-03-24", 130.0))
 
         val stats = repository.getCycleStats(meterId)
@@ -44,7 +44,7 @@ class MeterRepositoryCycleStatsTest {
         assertNotNull(stats)
         assertEquals(baselineId, stats.baseline?.id)
         assertEquals(latestId, stats.latest?.id)
-        assertEquals(20.0, stats.usedUnits, 1e-6)
+        assertEquals(30.0, stats.usedUnits, 1e-6)
     }
 
     @Test

@@ -212,10 +212,14 @@ class MainActivity : ComponentActivity() {
                             showAddReadingDialog = false
                             addReadingMeterId = null
                         },
-                        onSave = { id, value, notes, recordedAt ->
-                            homeViewModel.addReading(id, value, notes, recordedAt)
-                            showAddReadingDialog = false
-                            addReadingMeterId = null
+                        onSave = { id, value, notes, recordedAt, complete ->
+                            homeViewModel.addReading(id, value, notes, recordedAt) { error ->
+                                complete(error)
+                                if (error == null) {
+                                    showAddReadingDialog = false
+                                    addReadingMeterId = null
+                                }
+                            }
                         }
                     )
                 }
@@ -264,11 +268,13 @@ class MainActivity : ComponentActivity() {
 private fun AddReadingDialog(
     meterId: Long,
     onDismiss: () -> Unit,
-    onSave: (Long, Double, String?, Long) -> Unit
+    onSave: (Long, Double, String?, Long, (String?) -> Unit) -> Unit
 ) {
     var readingText by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf<String?>(null) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     val zoneId = remember { ZoneId.systemDefault() }
     val context = LocalContext.current
@@ -294,11 +300,16 @@ private fun AddReadingDialog(
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         confirmButton = {
-            TextButton(onClick = {
+            TextButton(enabled = !saving, onClick = {
+                if (saving) return@TextButton
+                if (saveError != null) {
+                    saveError = null
+                    return@TextButton
+                }
                 val value = readingText.toDoubleOrNull()
-                if (value == null || value <= 0.0) {
+                if (value == null || !value.isFinite() || value <= 0.0) {
                     showError = true
                     return@TextButton
                 }
@@ -307,19 +318,25 @@ private fun AddReadingDialog(
                     .atZone(zoneId)
                     .toInstant()
                     .toEpochMilli()
-                onSave(meterId, value, notes.ifBlank { null }, recordedAt)
+                saving = true
+                saveError = null
+                onSave(meterId, value, notes.ifBlank { null }, recordedAt) { error ->
+                    saving = false
+                    saveError = error
+                }
             }) {
-                Text(text = stringResource(id = R.string.save))
+                Text(text = stringResource(id = if (saveError == null) R.string.save else R.string.correct_reading))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(enabled = !saving, onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.cancel))
             }
         },
         title = { Text(text = stringResource(id = R.string.add_reading)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                saveError?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
                 NumberField(
                     value = readingText,
                     onValueChange = {

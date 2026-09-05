@@ -104,12 +104,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun addReading(meterId: Long, value: Double, notes: String?, recordedAt: Long) {
-        if (value.isNaN() || value <= 0.0) {
-            emitError(stringResolver.get(R.string.error_positive_reading))
+    private var savingReading = false
+
+    fun addReading(
+        meterId: Long, value: Double, notes: String?, recordedAt: Long,
+        onComplete: (String?) -> Unit = {}
+    ) {
+        if (savingReading) return
+        if (!value.isFinite() || value <= 0.0) {
+            val message = stringResolver.get(R.string.error_positive_reading)
+            emitError(message)
+            onComplete(message)
             return
         }
         val sanitizedRecordedAt = minOf(recordedAt, System.currentTimeMillis())
+        savingReading = true
         viewModelScope.launch {
             runCatching {
                 repository.addReading(
@@ -119,7 +128,11 @@ class HomeViewModel @Inject constructor(
                     recordedAt = sanitizedRecordedAt
                 )
             }.onSuccess {
+                onComplete(null)
+            }.onFailure { throwable ->
+                onComplete(throwable.message ?: "Unable to save reading. Please try again.")
             }
+            savingReading = false
         }
     }
 

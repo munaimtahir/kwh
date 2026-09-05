@@ -66,6 +66,31 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun lowerReading_reportsWarningAndCanBeCorrected() = runTest {
+        val id = repository.addMeter("Home", 7, 9, 0)
+        repository.addReading(id, 15840.0, null, clock.millis() - 86400000)
+        var error: String? = null
+        viewModel.addReading(id, 15480.0, null, clock.millis()) { error = it }
+        advanceUntilIdle()
+        assertTrue(error?.contains("Previous: 15840.0") == true)
+        assertTrue(error?.contains("New: 15480.0") == true)
+        kotlin.test.assertEquals(1, repository.readingsForMeter(id).first().size)
+        viewModel.addReading(id, 15880.0, null, clock.millis()) { error = it }
+        advanceUntilIdle()
+        kotlin.test.assertNull(error)
+        kotlin.test.assertEquals(2, repository.readingsForMeter(id).first().size)
+    }
+
+    @Test
+    fun rapidSaveCallsCreateOnlyOneReading() = runTest {
+        val id = repository.addMeter("Home", 7, 9, 0)
+        viewModel.addReading(id, 100.0, null, clock.millis())
+        viewModel.addReading(id, 100.0, null, clock.millis() + 1)
+        advanceUntilIdle()
+        kotlin.test.assertEquals(1, repository.readingsForMeter(id).first().size)
+    }
+
+    @Test
     fun environmentGroups_separateFromUngroupedMeters() = runTest {
         val envId = repository.createEnvironment("House")
         val groupedId = repository.addMeter("Grouped", 30, 9, 0)

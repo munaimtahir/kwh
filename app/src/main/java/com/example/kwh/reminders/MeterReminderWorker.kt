@@ -129,7 +129,12 @@ class MeterReminderWorker(
             .setStyle(NotificationCompat.BigTextStyle().bigText(contentLines.joinToString("\n")))
             .build()
 
-        NotificationManagerCompat.from(applicationContext).notify(meterId.toInt(), notification)
+        try {
+            NotificationManagerCompat.from(applicationContext).notify(meterId.toInt(), notification)
+        } catch (denied: SecurityException) {
+            // Permission can be revoked after scheduling; keep the next reminder scheduled.
+            Log.i(TAG, "Notification permission unavailable; reminder not posted", denied)
+        }
     }
 
     private fun buildAdditionalMessages(stats: CycleStats): List<String> {

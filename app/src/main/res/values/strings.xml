@@ -1,4 +1,5 @@
 <resources>
+    <string name="correct_reading">Correct</string>
     <!-- Application name and high-level UI labels -->
     <string name="app_name">kWh Logger</string>
     <string name="meter">Meter</string>

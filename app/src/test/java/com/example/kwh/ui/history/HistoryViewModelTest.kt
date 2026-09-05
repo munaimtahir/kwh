@@ -74,6 +74,61 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun `CSV v2 round trip preserves reading metadata settings environment and activations`() = runTest {
+        val source = repository.addMeter("Source", 30, 9, 0)
+        val env = repository.createEnvironment("House, East")
+        repository.assignMeterToEnvironment(source, env)
+        repository.updateMeterSettings(source, 31, "200,300,400", 30)
+        repository.updateSafetyBufferDays(source, 5)
+        repository.addReading(source, 14000.0, "note, with \"quotes\"\nand a second line", 1000)
+        repository.addReading(source, 14125.0, null, 86401000)
+        repository.restoreActivations(source, listOf(500L to 900L, 1000L to null))
+        val exporter = createViewModel(source)
+        advanceUntilIdle()
+        val export = async { exporter.events.first() }
+        exporter.requestCsvExport()
+        val csv = (export.await() as HistoryEvent.ExportCsv).csv
+        val target = repository.addMeter("Target", 30, 9, 0)
+        val importer = createViewModel(target)
+        advanceUntilIdle()
+        val imported = async { importer.events.first() }
+        importer.importFromCsv(csv)
+        assertTrue(imported.await() is HistoryEvent.Imported)
+        val meter = repository.getMeter(target)!!
+        assertEquals(31, meter.billingAnchorDay)
+        assertEquals("200,300,400", meter.thresholdsCsv)
+        assertEquals(env, meter.environmentId)
+        assertEquals(5, meter.safetyBufferDays)
+        assertEquals(repository.readingsForMeter(source).first().map { Triple(it.recordedAt, it.value, it.notes) },
+            repository.readingsForMeter(target).first().map { Triple(it.recordedAt, it.value, it.notes) })
+        assertEquals(repository.activationHistory(source).first().map { it.startedAt to it.endedAt },
+            repository.activationHistory(target).first().map { it.startedAt to it.endedAt })
+        assertEquals("Source", repository.getMeter(source)?.name)
+        assertEquals("Target", meter.name) // CSV v2 imports into the selected existing meter.
+    }
+
+    @Test
+    fun `CSV v2 header cannot assign an ungrouped meter to a fabricated environment`() = runTest {
+        val source = repository.addMeter("Source", 7, 9, 0)
+        repository.addReading(source, 100.0, null, 1000)
+        val exporter = createViewModel(source)
+        advanceUntilIdle()
+        val export = async { exporter.events.first() }
+        exporter.requestCsvExport()
+        val csv = (export.await() as HistoryEvent.ExportCsv).csv
+        val target = repository.addMeter("Target", 7, 9, 0)
+        val importer = createViewModel(target)
+        advanceUntilIdle()
+        val imported = async { importer.events.first() }
+        importer.importFromCsv(csv)
+        assertTrue(imported.await() is HistoryEvent.Imported)
+        kotlin.test.assertNull(repository.getMeter(target)?.environmentId)
+        assertTrue(repository.environments.first().isEmpty())
+        assertEquals("200,300", repository.getMeter(target)?.thresholdsCsv)
+        assertEquals(100.0, repository.readingsForMeter(target).first().single().value)
+    }
+
+    @Test
     fun `import assigns environment, safety buffer, and activation rows`() = runTest {
         val meterId = repository.addMeter("Meter A", 30, 9, 0)
         val viewModel = createViewModel(meterId)

@@ -103,7 +103,12 @@ class SwitchReminderWorker(
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(applicationContext).notify(notificationId(meterId), notification)
+        try {
+            NotificationManagerCompat.from(applicationContext).notify(notificationId(meterId), notification)
+        } catch (denied: SecurityException) {
+            // Permission can be revoked after scheduling; keep the daily check scheduled.
+            Log.i(TAG, "Notification permission unavailable; switch alert not posted", denied)
+        }
     }
 
     private fun ensureChannel() {

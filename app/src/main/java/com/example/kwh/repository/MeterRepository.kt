@@ -284,13 +284,17 @@ class MeterRepository @Inject constructor(
         notes: String?,
         recordedAt: Long
     ): Long {
-        return meterDao.insertReading(
+        require(value.isFinite() && value > 0.0) { "Enter a finite, positive meter reading." }
+        val date = Instant.ofEpochMilli(recordedAt).atZone(clock.zone).toLocalDate()
+        return meterDao.insertValidatedReading(
             MeterReadingEntity(
                 meterId = meterId,
                 value = value,
                 notes = notes,
                 recordedAt = recordedAt
-            )
+            ),
+            date.atStartOfDay(clock.zone).toInstant().toEpochMilli(),
+            date.plusDays(1).atStartOfDay(clock.zone).toInstant().toEpochMilli()
         )
     }
 
@@ -349,7 +353,7 @@ class MeterRepository @Inject constructor(
         return buildCycleStats(
             meter = meter,
             window = window,
-            baseline = earliest ?: carry,
+            baseline = carry ?: earliest,
             latest = latest ?: earliest,
             carry = carry,
             activations = activations
@@ -394,8 +398,8 @@ class MeterRepository @Inject constructor(
         val sorted = withReadings.readings.sortedBy { it.recordedAt }
         val start = window.start.toEpochMilli()
         val end = window.end.toEpochMilli()
-        val baseline = sorted.firstOrNull { it.recordedAt in start until end }
-            ?: sorted.lastOrNull { it.recordedAt < start }
+        val baseline = sorted.lastOrNull { it.recordedAt < start }
+            ?: sorted.firstOrNull { it.recordedAt in start until end }
         val latest = sorted.lastOrNull { it.recordedAt in start until end }
         val carry = sorted.lastOrNull { it.recordedAt < start }
         return buildCycleStats(meter, window, baseline, latest, carry, activations)

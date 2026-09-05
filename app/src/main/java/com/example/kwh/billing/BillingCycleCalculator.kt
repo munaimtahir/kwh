@@ -4,6 +4,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.YearMonth
 
 /**
  * Represents the time window for a billing cycle. The window is half-open, i.e. it includes
@@ -35,7 +36,7 @@ class DefaultBillingCycleCalculator : BillingCycleCalculator {
         val zone: ZoneId = clock.zone
         val today = LocalDate.now(clock)
         val cycleStartDate = resolveCycleStart(today, anchorDay)
-        val cycleEndDate = cycleStartDate.plusMonths(1)
+        val cycleEndDate = resolveAnchor(YearMonth.from(cycleStartDate).plusMonths(1), anchorDay)
 
         return CycleWindow(
             start = cycleStartDate.atStartOfDay(zone).toInstant(),
@@ -52,4 +53,7 @@ class DefaultBillingCycleCalculator : BillingCycleCalculator {
             previousMonth.withDayOfMonth(anchorDay.coerceAtMost(previousMonth.lengthOfMonth()))
         }
     }
+
+    private fun resolveAnchor(month: YearMonth, anchorDay: Int): LocalDate =
+        month.atDay(anchorDay.coerceAtMost(month.lengthOfMonth()))
 }

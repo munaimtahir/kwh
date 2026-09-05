@@ -17,7 +17,7 @@ import org.robolectric.annotation.Config
 class MeterDatabaseMigrationTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val dbName = "migration-test.db"
+    private val dbName = "meter.db"
     private lateinit var helper: SupportSQLiteOpenHelper
 
     @After
@@ -26,6 +26,74 @@ class MeterDatabaseMigrationTest {
             helper.close()
         }
         context.deleteDatabase(dbName)
+    }
+
+    @Test
+    fun productionUpgrades1To4() = verifyProductionUpgrade(1)
+
+    @Test
+    fun productionUpgrades2To4() = verifyProductionUpgrade(2)
+
+    @Test
+    fun productionUpgrades3To4() = verifyProductionUpgrade(3)
+
+    @Test
+    fun freshV4AndReopenPreserveAllEntities() = kotlinx.coroutines.runBlocking {
+        var room = com.example.kwh.di.DatabaseModule.provideDatabase(context)
+        val dao = room.meterDao()
+        val env = dao.insertEnvironment(EnvironmentEntity(name = "House"))
+        val meter = dao.insertMeter(MeterEntity(name = "Home", environmentId = env))
+        dao.insertReading(MeterReadingEntity(meterId = meter, value = 123.5, recordedAt = 1000, notes = "history"))
+        dao.insertActivation(MeterActivationEntity(meterId = meter, startedAt = 500))
+        dao.insertSwitchOutcome(SwitchOutcomeEntity(meterId = meter, recommendedDate = 600,
+            actualSwitchDate = 700, unitsAtSwitch = 123.5, thresholdTarget = 200))
+        room.close()
+        room = com.example.kwh.di.DatabaseModule.provideDatabase(context)
+        try {
+            assertEquals(env, room.meterDao().getMeterById(meter)?.environmentId)
+            assertEquals(123.5, room.meterDao().latestBefore(meter, 2000)?.value)
+            assertEquals(500L, room.meterDao().getActivationsForMeter(meter).single().startedAt)
+            assertEquals(123.5, room.meterDao().getRecentSwitchOutcomes(meter, 6).single().unitsAtSwitch)
+            assertEquals(4, room.openHelper.writableDatabase.version)
+        } finally { room.close() }
+    }
+
+    private fun verifyProductionUpgrade(version: Int) = kotlinx.coroutines.runBlocking {
+        helper = if (version == 3) createV3Database() else createV2Database(version)
+        helper.writableDatabase.apply {
+            execSQL("INSERT INTO meters (id,name,reminder_enabled,reminder_frequency_days,reminder_hour,reminder_minute) VALUES (1,'Home',1,7,9,30)")
+            execSQL("INSERT INTO meter_readings (id,meter_id,value,notes,recorded_at) VALUES (1,1,14000,'history',1000),(2,1,14125,NULL,2000)")
+            if (version >= 2) execSQL("UPDATE meters SET billing_anchor_day=31, thresholds_csv='200,300,400'")
+            if (version == 3) {
+                execSQL("INSERT INTO environments (id,name) VALUES (1,'House')")
+                execSQL("UPDATE meters SET environment_id=1,safety_buffer_days=5")
+                execSQL("INSERT INTO meter_activations (id,meter_id,started_at,ended_at) VALUES (1,1,500,900),(2,1,1000,NULL)")
+            }
+        }
+        helper.close()
+        val room = com.example.kwh.di.DatabaseModule.provideDatabase(context)
+        try {
+            val dao = room.meterDao()
+            val meter = dao.getMeterById(1)!! // Forces Room schema validation and real migration discovery.
+            assertEquals("Home", meter.name)
+            assertTrue(meter.reminderEnabled)
+            assertEquals(30, meter.reminderMinute)
+            assertEquals(if (version >= 2) 31 else 1, meter.billingAnchorDay)
+            assertEquals(if (version >= 2) "200,300,400" else "200,300", meter.thresholdsCsv)
+            assertEquals(14000.0, dao.getReadingById(1)?.value)
+            assertEquals("history", dao.getReadingById(1)?.notes)
+            assertEquals(14125.0, dao.getReadingById(2)?.value)
+            if (version == 3) {
+                assertEquals(1L, meter.environmentId)
+                assertEquals("House", dao.getEnvironmentById(1)?.name)
+                assertEquals(5, meter.safetyBufferDays)
+                assertEquals(2, dao.getActivationsForMeter(1).size)
+                assertEquals(900L, dao.getActivationsForMeter(1).first { it.id == 1L }.endedAt)
+                assertEquals(null, dao.getActivationsForMeter(1).first { it.id == 2L }.endedAt)
+            }
+            assertTrue(dao.getRecentSwitchOutcomes(1, 6).isEmpty()) // Introduced only in v4.
+            assertEquals(4, room.openHelper.writableDatabase.version)
+        } finally { room.close() }
     }
 
     @Test
@@ -153,10 +221,10 @@ class MeterDatabaseMigrationTest {
         return FrameworkSQLiteOpenHelperFactory().create(configuration)
     }
 
-    private fun createV2Database(): SupportSQLiteOpenHelper {
+    private fun createV2Database(version: Int = 2): SupportSQLiteOpenHelper {
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(dbName)
-            .callback(object : SupportSQLiteOpenHelper.Callback(2) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                     db.execSQL(
                         "CREATE TABLE meters (" +
@@ -165,9 +233,9 @@ class MeterDatabaseMigrationTest {
                             "reminder_enabled INTEGER NOT NULL, " +
                             "reminder_frequency_days INTEGER NOT NULL, " +
                             "reminder_hour INTEGER NOT NULL, " +
-                            "reminder_minute INTEGER NOT NULL, " +
-                            "billing_anchor_day INTEGER NOT NULL DEFAULT 1, " +
-                            "thresholds_csv TEXT NOT NULL DEFAULT '200,300')"
+                            "reminder_minute INTEGER NOT NULL" +
+                            (if (version >= 2) ", billing_anchor_day INTEGER NOT NULL DEFAULT 1, " +
+                                "thresholds_csv TEXT NOT NULL DEFAULT '200,300'" else "") + ")"
                     )
                     db.execSQL(
                         "CREATE TABLE meter_readings (" +
